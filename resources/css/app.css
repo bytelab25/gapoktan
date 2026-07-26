@@ -1,9 +1,50 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+@layer base {
+    body {
+        @apply bg-slate-50 text-slate-900 antialiased;
+    }
+}
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+@layer components {
+    /* Kartu putih standar yang dipakai di seluruh halaman. */
+    .card {
+        @apply rounded-xl border border-slate-200 bg-white shadow-card;
+    }
+
+    .label-field {
+        @apply mb-2 block text-sm font-medium text-slate-700;
+    }
+
+    .input-field {
+        @apply w-full rounded-lg border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400
+               focus:border-brand-500 focus:bg-white focus:ring-brand-500;
+    }
+
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold
+               transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60;
+    }
+
+    .btn-primary {
+        @apply btn bg-brand-700 text-white hover:bg-brand-800 focus:ring-brand-700;
+    }
+
+    .btn-danger {
+        @apply btn bg-danger-500 text-white hover:bg-danger-600 focus:ring-danger-500;
+    }
+
+    .btn-ghost {
+        @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-300;
+    }
+
+    .badge {
+        @apply inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide;
+    }
+
+    .table-head {
+        @apply bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+    }
 }
