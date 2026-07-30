@@ -2,105 +2,98 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\KategoriKas;
+use App\Models\KelompokTani;
 use App\Models\LogAktivitas;
 use App\Models\PembayaranPinjaman;
 use App\Models\Pinjaman;
-use App\Models\TransaksiKas;
+use App\Services\SetoranPinjaman;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PembayaranPinjamanController extends Controller
 {
-    public function create(Pinjaman $pinjaman): View
+    /**
+     * Pilih kelompok dulu bila belum ditentukan, mis. dari pintasan topbar.
+     */
+    public function pilih(): View
     {
-        $pinjaman->load(['kelompokTani', 'pembayaran']);
-
-        return view('pinjaman.bayar', [
-            'pinjaman' => $pinjaman,
-            'bulanBerjalan' => $pinjaman->bulanBungaBerjalan(),
-            'bungaBerjalan' => $pinjaman->bungaBerjalan(),
+        return view('pinjaman.pilih-kelompok', [
+            'daftarKelompok' => KelompokTani::query()
+                ->withCount(['pinjaman as pinjaman_aktif_count' => fn ($query) => $query
+                    ->where('status', '!=', Pinjaman::STATUS_LUNAS)])
+                ->orderBy('nama_kelompok')
+                ->get(),
         ]);
     }
 
-    public function store(Request $request, Pinjaman $pinjaman): RedirectResponse
+    public function create(KelompokTani $kelompok): View
     {
-        $pinjaman->load('pembayaran');
+        $layanan = new SetoranPinjaman($kelompok);
+        $tagihan = $layanan->tagihan();
 
+        return view('pinjaman.bayar', [
+            'kelompok' => $kelompok,
+            'tagihan' => $tagihan,
+            'totalSisaPokok' => $layanan->totalSisaPokok(),
+            'totalBunga' => $layanan->totalBungaTerhutang(),
+            'totalPelunasan' => $layanan->totalPelunasan(),
+        ]);
+    }
+
+    public function store(Request $request, KelompokTani $kelompok): RedirectResponse
+    {
         $data = $request->validate([
             'tanggal' => ['required', 'date'],
-            'bayar_pokok' => ['required', 'numeric', 'min:0', 'max:'.$pinjaman->sisa_pokok],
+            'jumlah' => ['required', 'numeric', 'min:1'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
-        ], messages: [
-            'bayar_pokok.max' => 'Pembayaran pokok tidak boleh melebihi sisa hutang '.rupiah($pinjaman->sisa_pokok).'.',
         ], attributes: [
-            'bayar_pokok' => 'jumlah bayar pokok',
+            'jumlah' => 'jumlah setoran',
         ]);
 
-        $bulanBunga = $pinjaman->bulanBungaBerjalan();
-        $bunga = $pinjaman->bungaBerjalan();
+        $tanggal = Carbon::parse($data['tanggal']);
+        $layanan = new SetoranPinjaman($kelompok);
+        $maksimal = $layanan->totalPelunasan($tanggal);
 
-        if ((float) $data['bayar_pokok'] <= 0 && $bunga <= 0) {
-            return back()->with('gagal', 'Tidak ada yang perlu dibayar untuk pinjaman ini.');
+        if ($maksimal < 0.01) {
+            return back()->with('gagal', 'Kelompok ini tidak punya tagihan yang perlu dibayar.');
         }
 
-        $pembayaran = DB::transaction(function () use ($pinjaman, $data, $bulanBunga, $bunga, $request) {
-            $pembayaran = $pinjaman->pembayaran()->create([
-                'kode' => $this->kodeBerikutnya(),
-                'tanggal' => $data['tanggal'],
-                'bulan_bunga' => $bulanBunga,
-                'bunga_nominal' => $bunga,
-                'bayar_pokok' => $data['bayar_pokok'],
-                'total_bayar' => (float) $data['bayar_pokok'] + $bunga,
-                'deskripsi' => $data['deskripsi'] ?? null,
-                'user_id' => $request->user()->id,
+        if ((float) $data['jumlah'] - $maksimal > 0.01) {
+            throw ValidationException::withMessages([
+                'jumlah' => 'Setoran melebihi total tagihan '.rupiah($maksimal).'.',
             ]);
+        }
 
-            // Uang yang masuk kembali ke kas koperasi.
-            TransaksiKas::create([
-                'kode' => sprintf('TXN-%05d', 10000 + TransaksiKas::max('id') + 1),
-                'tanggal' => $data['tanggal'],
-                'jenis' => TransaksiKas::JENIS_MASUK,
-                'kategori_kas_id' => KategoriKas::firstOrCreate(
-                    ['nama' => 'Pembayaran Pinjaman'],
-                    ['bawaan' => true],
-                )->id,
-                'kelompok_tani_id' => $pinjaman->kelompok_tani_id,
-                'jumlah' => $pembayaran->total_bayar,
-                'biaya' => 0,
-                'deskripsi' => 'Pembayaran pinjaman '.$pinjaman->kode,
-                'user_id' => $request->user()->id,
-            ]);
+        $baris = $layanan->catat($tanggal, (float) $data['jumlah'], $data['deskripsi'] ?? null, $request->user());
 
-            $pinjaman->segarkanStatus();
+        if ($baris->isEmpty()) {
+            return back()->with('gagal', 'Tidak ada tagihan yang bisa dialokasikan untuk setoran ini.');
+        }
 
-            return $pembayaran;
-        });
+        $pertama = $baris->first();
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_INPUT,
-            'Pembayaran pinjaman '.rupiah($pembayaran->total_bayar).' dari '.$pinjaman->kelompokTani->nama_kelompok,
-            $pembayaran->kode,
+            'Setoran pembayaran pinjaman '.rupiah((float) $baris->sum('total_bayar'))
+                .' dari '.$kelompok->nama_kelompok
+                .($baris->count() > 1 ? ' (terbagi ke '.$baris->count().' pinjaman)' : ''),
+            $pertama->kode_setoran,
         );
 
         return redirect()
-            ->route('pembayaran.faktur', $pembayaran)
-            ->with('sukses', 'Pembayaran pinjaman berhasil dicatat.');
+            ->route('pembayaran.faktur', $pertama)
+            ->with('sukses', 'Setoran berhasil dicatat.');
     }
 
     public function faktur(PembayaranPinjaman $pembayaran): View
     {
-        $pembayaran->load('pinjaman.kelompokTani');
-
         return view('pinjaman.faktur-bayar', [
             'pembayaran' => $pembayaran,
+            'daftarBaris' => $pembayaran->satuSetoran(),
         ]);
     }
 
-    private function kodeBerikutnya(): string
-    {
-        return sprintf('BP-%s-%03d', now()->year, PembayaranPinjaman::whereYear('created_at', now()->year)->count() + 1);
-    }
 }

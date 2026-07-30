@@ -16,24 +16,23 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    public const ROLE_SYSTEM_MANAGER = 'System Manager';
-    public const ROLE_KETUA_GAPOKTAN = 'Ketua Gapoktan';
-    public const ROLE_KETUA_POKTAN = 'Ketua Poktan';
+    public const ROLE_SEKRETARIS = 'sekretaris';
+    public const ROLE_BENDAHARA = 'bendahara';
+    public const ROLE_KETUA = 'ketua';
+    public const ROLE_USER = 'user';
 
-    /**
-     * Role hanya label kepengurusan — sistem tidak membatasi akses per role.
-     */
-    public const ROLES = [
-        self::ROLE_SYSTEM_MANAGER,
-        self::ROLE_KETUA_GAPOKTAN,
-        self::ROLE_KETUA_POKTAN,
+    public const LABEL_ROLE = [
+        self::ROLE_SEKRETARIS => 'Sekretaris',
+        self::ROLE_BENDAHARA => 'Bendahara',
+        self::ROLE_KETUA => 'Ketua Gapoktan',
+        self::ROLE_USER => 'Pengguna',
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Sekretaris dan bendahara punya wewenang identik: administrator penuh.
      */
+    public const ROLE_ADMIN = [self::ROLE_SEKRETARIS, self::ROLE_BENDAHARA];
+
     protected function casts(): array
     {
         return [
@@ -42,11 +41,54 @@ class User extends Authenticatable
         ];
     }
 
+    public function getLabelRoleAttribute(): string
+    {
+        return self::LABEL_ROLE[$this->role] ?? $this->role;
+    }
+
     public function getInisialAttribute(): string
     {
         return collect(explode(' ', $this->name))
             ->take(2)
             ->map(fn (string $bagian) => mb_substr($bagian, 0, 1))
             ->implode('');
+    }
+
+    /**
+     * Administrator penuh — boleh mengelola akun pengguna lain.
+     */
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, self::ROLE_ADMIN, true);
+    }
+
+    /**
+     * Boleh menambah, menyunting, dan menghapus data operasional.
+     * Role "user" hanya boleh melihat.
+     */
+    public function bisaKelola(): bool
+    {
+        return $this->role !== self::ROLE_USER;
+    }
+
+    /**
+     * Ketua ikut memegang pengaturan suku bunga dan potongan.
+     */
+    public function bisaKelolaPengaturan(): bool
+    {
+        return $this->isAdmin() || $this->role === self::ROLE_KETUA;
+    }
+
+    public function bisaKelolaPengguna(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    /**
+     * Ketua boleh melihat daftar akun, tapi tidak mengubahnya.
+     */
+    public function bisaLihatPengguna(): bool
+    {
+        return $this->bisaKelola();
     }
 }

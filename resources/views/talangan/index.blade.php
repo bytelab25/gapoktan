@@ -2,10 +2,12 @@
     <x-page-header judul="Dana Talangan"
                    deskripsi="Pengelolaan dana darurat untuk anggota yang meninggal dan pelaporan keuangan akhir tahun.">
         <x-slot:aksi>
-            <a href="{{ route('talangan.create') }}" class="btn-primary">
-                <x-icon name="plus" class="h-4 w-4" />
-                Buat Transaksi
-            </a>
+            @can('kelola')
+                <a href="{{ route('talangan.create') }}" class="btn-primary">
+                    <x-icon name="plus" class="h-4 w-4" />
+                    Buat Transaksi
+                </a>
+            @endcan
         </x-slot:aksi>
     </x-page-header>
 
@@ -23,7 +25,16 @@
                 Transaksi Dana Terkini
             </h2>
 
-            <form method="GET">
+            <form method="GET" class="flex flex-wrap items-center gap-3">
+                <select name="kelompok" onchange="this.form.submit()" class="input-field py-2 text-sm">
+                    <option value="">Semua Kelompok</option>
+                    @foreach ($daftarKelompok as $kelompok)
+                        <option value="{{ $kelompok->id }}" @selected(request('kelompok') == $kelompok->id)>
+                            {{ $kelompok->nama_kelompok }}
+                        </option>
+                    @endforeach
+                </select>
+
                 <select name="jenis" onchange="this.form.submit()" class="input-field py-2 text-sm">
                     <option value="">Semua Transaksi</option>
                     <option value="masuk" @selected(request('jenis') === 'masuk')>Dana Masuk</option>
@@ -49,7 +60,13 @@
                             onclick="window.location='{{ route('talangan.show', $transaksi) }}'">
                             <td class="whitespace-nowrap px-6 py-4 font-medium text-slate-700">{{ $transaksi->kode }}</td>
                             <td class="px-6 py-4 text-slate-600">{{ $transaksi->kelompokTani->nama_kelompok }}</td>
-                            <td class="px-6 py-4 text-slate-600">{{ $transaksi->penerima ?: '-' }}</td>
+                            <td class="px-6 py-4 text-slate-600">
+                                @if ($transaksi->otomatis)
+                                    <span class="badge bg-brand-50 text-brand-700">Otomatis · {{ $transaksi->pinjaman->kode }}</span>
+                                @else
+                                    {{ $transaksi->penerima ?: '-' }}
+                                @endif
+                            </td>
                             <td class="whitespace-nowrap px-6 py-4 text-slate-500">{{ tanggal_id($transaksi->tanggal) }}</td>
                             <td class="whitespace-nowrap px-6 py-4 text-right font-semibold {{ $transaksi->jenis === 'masuk' ? 'text-brand-600' : 'text-danger-600' }}">
                                 {{ $transaksi->jenis === 'masuk' ? '+ ' : '- ' }}{{ rupiah($transaksi->jumlah) }}
@@ -62,8 +79,6 @@
             </table>
         </div>
 
-        @if ($daftarTransaksi->hasPages())
-            <div class="border-t border-slate-200 px-6 py-4">{{ $daftarTransaksi->links() }}</div>
-        @endif
+        <x-tabel-kaki :paginator="$daftarTransaksi" />
     </div>
 </x-app-layout>

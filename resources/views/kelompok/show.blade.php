@@ -24,14 +24,13 @@
             @endforeach
         </dl>
 
-        <div class="mt-8 flex flex-wrap justify-end gap-3">
-            <form method="POST" action="{{ route('kelompok.destroy', $kelompok) }}"
-                  onsubmit="return confirm('Hapus kelompok tani {{ $kelompok->nama_kelompok }}? Tindakan ini tidak bisa dibatalkan.')">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn-danger">Hapus Kelompok Tani</button>
-            </form>
-            <a href="{{ route('kelompok.edit', $kelompok) }}" class="btn-primary">Sunting Data</a>
-        </div>
+        @can('kelola')
+            <div class="mt-8 flex flex-wrap justify-end gap-3">
+                <x-tombol-hapus :aksi="route('kelompok.destroy', $kelompok)"
+                                :pesan="'Kelompok ' . $kelompok->nama_kelompok . ' akan dihapus permanen. Kelompok yang punya riwayat pinjaman tidak bisa dihapus.'"
+                                label="Hapus Kelompok Tani" />
+                <a href="{{ route('kelompok.edit', $kelompok) }}" class="btn-primary">Sunting Data</a>
+            </div>
+        @endcan
     </div>
 </x-app-layout>

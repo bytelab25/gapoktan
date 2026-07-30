@@ -78,13 +78,21 @@ class KasController extends Controller
         ]);
     }
 
-    public function edit(TransaksiKas $kas): View
+    public function edit(TransaksiKas $kas): View|RedirectResponse
     {
+        if ($kas->otomatis) {
+            return redirect()->route('kas.show', $kas)->with('gagal', $this->pesanOtomatis());
+        }
+
         return view('kas.edit', [...$this->dataForm(), 'transaksi' => $kas]);
     }
 
     public function update(Request $request, TransaksiKas $kas): RedirectResponse
     {
+        if ($kas->otomatis) {
+            return back()->with('gagal', $this->pesanOtomatis());
+        }
+
         $data = $this->validasi($request);
         $data['biaya'] = $this->hitungBiaya($data['jumlah']);
 
@@ -103,6 +111,10 @@ class KasController extends Controller
 
     public function destroy(TransaksiKas $kas): RedirectResponse
     {
+        if ($kas->otomatis) {
+            return back()->with('gagal', $this->pesanOtomatis());
+        }
+
         $kode = $kas->kode;
         $jumlah = rupiah($kas->jumlah);
         $kas->delete();
@@ -120,7 +132,7 @@ class KasController extends Controller
     private function dataForm(): array
     {
         return [
-            'daftarKategori' => KategoriKas::orderBy('nama')->get(),
+            'daftarKategori' => KategoriKas::untukPengguna()->orderBy('nama')->get(),
             'daftarKelompok' => KelompokTani::orderBy('nama_kelompok')->get(),
             'pengaturan' => Pengaturan::ambil(),
         ];
@@ -155,6 +167,11 @@ class KasController extends Controller
 
     private function kodeBerikutnya(): string
     {
-        return sprintf('TXN-%05d', 10000 + TransaksiKas::max('id') + 1);
+        return sprintf('TXN-%05d', 10000 + (int) TransaksiKas::max('id') + 1);
+    }
+
+    private function pesanOtomatis(): string
+    {
+        return 'Transaksi ini dibuat otomatis dari pencairan pinjaman. Ubah data pinjamannya bila nominalnya salah.';
     }
 }

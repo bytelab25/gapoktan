@@ -11,19 +11,21 @@
 
     <div class="ml-auto flex items-center gap-1">
         {{-- Pintasan buat data baru --}}
-        <div class="relative" x-data="{ buka: false }" x-on:click.outside="buka = false">
-            <button type="button" x-on:click="buka = ! buka"
-                    class="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-                    aria-label="Buat data baru">
-                <x-icon name="plus" class="h-5 w-5" />
-            </button>
-            <div x-show="buka" x-cloak x-transition.origin.top.right
-                 class="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-pop">
-                <a href="{{ route('kelompok.create') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Buat Kelompok Tani</a>
-                <a href="{{ route('pinjaman.create') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Buat Pinjaman</a>
-                <a href="{{ route('pinjaman.index') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Buat Pembayaran Pinjaman</a>
+        @can('kelola')
+            <div class="relative" x-data="{ buka: false }" x-on:click.outside="buka = false">
+                <button type="button" x-on:click="buka = ! buka"
+                        class="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                        aria-label="Buat data baru">
+                    <x-icon name="plus" class="h-5 w-5" />
+                </button>
+                <div x-show="buka" x-cloak x-transition.origin.top.right
+                     class="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-pop">
+                    <a href="{{ route('kelompok.create') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Buat Kelompok Tani</a>
+                    <a href="{{ route('pinjaman.create') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Buat Pinjaman</a>
+                    <a href="{{ route('pembayaran.pilih') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Buat Pembayaran Pinjaman</a>
+                </div>
             </div>
-        </div>
+        @endcan
 
         {{-- Riwayat aktivitas --}}
         <div class="relative" x-data="{ buka: false }" x-on:click.outside="buka = false">
@@ -51,11 +53,13 @@
             </div>
         </div>
 
-        <a href="{{ route('pengaturan.edit') }}"
-           class="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-           aria-label="Pengaturan sistem">
-            <x-icon name="pengaturan" class="h-5 w-5" />
-        </a>
+        @can('kelola-pengaturan')
+            <a href="{{ route('pengaturan.edit') }}"
+               class="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+               aria-label="Pengaturan sistem">
+                <x-icon name="pengaturan" class="h-5 w-5" />
+            </a>
+        @endcan
 
         <span class="mx-2 h-8 w-px bg-slate-200"></span>
 
@@ -64,7 +68,7 @@
             <button type="button" x-on:click="buka = ! buka" class="flex items-center gap-3 rounded-lg py-1 pl-2 pr-1 hover:bg-slate-50">
                 <span class="hidden text-right sm:block">
                     <span class="block text-sm font-semibold leading-tight text-slate-900">{{ auth()->user()->name }}</span>
-                    <span class="block text-xs text-slate-500">{{ auth()->user()->role }}</span>
+                    <span class="block text-xs text-slate-500">{{ auth()->user()->label_role }}</span>
                 </span>
                 <span class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-700 text-sm font-semibold text-white">
                     {{ auth()->user()->inisial }}
@@ -73,7 +77,9 @@
             <div x-show="buka" x-cloak x-transition.origin.top.right
                  class="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-pop">
                 <a href="{{ route('profil.show') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Data Diri</a>
-                <a href="{{ route('pengaturan.edit') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Pengaturan Sistem</a>
+                @can('kelola-pengaturan')
+                    <a href="{{ route('pengaturan.edit') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Pengaturan Sistem</a>
+                @endcan
                 <form method="POST" action="{{ route('logout') }}" class="border-t border-slate-100">
                     @csrf
                     <button type="submit" class="block w-full px-4 py-2.5 text-left text-sm text-danger-600 hover:bg-danger-50">

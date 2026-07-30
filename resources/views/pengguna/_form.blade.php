@@ -29,10 +29,14 @@
         <label for="role" class="label-field">Role</label>
         <select id="role" name="role" required class="input-field">
             <option value="">Pilih Role</option>
-            @foreach (\App\Models\User::ROLES as $role)
-                <option value="{{ $role }}" @selected(old('role', $pengguna?->role) === $role)>{{ $role }}</option>
+            @foreach (\App\Models\User::LABEL_ROLE as $nilai => $label)
+                <option value="{{ $nilai }}" @selected(old('role', $pengguna?->role) === $nilai)>{{ $label }}</option>
             @endforeach
         </select>
+        <p class="mt-1.5 text-xs text-slate-500">
+            Sekretaris dan bendahara punya wewenang sama: akses penuh termasuk mengelola akun.
+            Ketua mengelola data operasional dan pengaturan suku bunga. Pengguna hanya bisa melihat.
+        </p>
         <x-input-error :messages="$errors->get('role')" class="mt-2" />
     </div>
 

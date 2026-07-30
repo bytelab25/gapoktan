@@ -160,3 +160,42 @@ Shortcut create · History dropdown · dropdown jenis_transaksi · dropdown jeni
 5. **Role tanpa aturan akses.** Semua layar tampil sidebar penuh yang sama. Tidak jelas Ketua Poktan lihat apa.
 6. **Dua konsep riwayat.** Dropdown History (aktivitas pinjaman) beda dari Log Aktivitas Sistem (audit CRUD).
 7. **Kategori kas dinamis tapi warna badge statis** per kategori di desain.
+
+## Koreksi Setelah Tinjauan Ulang (30 Juli 2026)
+
+Dua layar Laporan diambil ulang dari Figma (node `211:4958` dan `372:426`) dan ternyata
+implementasi awal salah bentuk:
+
+- **Laporan Keuangan itu satu halaman**, bukan halaman cetak terpisah. Bar filter
+  (`Rentang Tanggal` / `Tahun` + `Jenis Laporan` + tombol `Buat Laporan`) berada di atas,
+  hasilnya langsung tampil di bawahnya di dalam layout aplikasi lengkap dengan sidebar.
+  Tombol `Unduh Laporan` yang membuka versi berkop ada di header hasil.
+- **Warna badge kategori kas mengikuti jenis transaksi**, bukan nama kategori: masuk
+  memakai hijau, keluar memakai abu. Ini menutup temuan nomor 7 di atas.
+- **Kolom Saldo di tabel laporan berwarna hijau untuk baris masuk** dan gelap untuk baris
+  keluar.
+- Tabel laporan punya pagination bernomor plus pemilih `Baris per halaman`, dan diurutkan
+  terbaru lebih dulu.
+
+Node yang belum sempat diambil karena batas kuota Figma MCP: `333:2141` (Laporan Pinjaman),
+`333:2381` (Laporan Dana Talangan), `376:1208` (Akhir Tahun setelah dibuat), `381:224`,
+`381:506`, `381:697` (layar detail). Ketiga laporan itu dibangun mengikuti kerangka yang
+sama dengan Laporan Kas.
+
+## Aturan Bisnis yang Ditetapkan Pemilik Produk
+
+- **Role**: `sekretaris` dan `bendahara` identik dan merupakan administrator penuh (satu-satunya
+  yang boleh mengelola akun). `ketua` mengelola seluruh data operasional plus Pengaturan Sistem,
+  tapi tidak bisa mengubah akun. `user` hanya boleh melihat.
+- **Pinjaman berjalan per termin 4 bulan** (4 → 8 → 12). Bunga tetap dihitung per bulan dari
+  sisa pokok, tapi jatuh temponya kelipatan 4 bulan. Melunasi bunga tanpa memotong pokok
+  menggeser jatuh tempo ke termin berikutnya.
+- **Pembayaran memprioritaskan bunga**, sisanya baru memotong pokok, sehingga kelompok boleh
+  menyetor kurang dari bunga (kekurangannya jadi `tunggakan_bunga`).
+- **FIFO antar pinjaman**: satu kelompok boleh punya beberapa pinjaman berjalan; setoran masuk
+  ke pinjaman dengan tanggal pencairan paling awal, sisanya mengalir ke berikutnya. Karena itu
+  form bayar berada di level kelompok (`kelompok/{id}/bayar`), bukan level pinjaman.
+- **Potongan muka 1,5% = 0,5% operasional + 1% dana talangan.** Pencairan pinjaman otomatis
+  membuat dua baris kas keluar (dana yang diterima kelompok dan setoran ke pos dana talangan)
+  serta satu baris dana talangan masuk. Porsi operasional tidak jadi baris kas karena uangnya
+  tidak pernah keluar — hanya disimpan di kolom `biaya`.

@@ -27,14 +27,24 @@
             @endforeach
         </dl>
 
-        <div class="mt-8 flex flex-wrap justify-end gap-3">
-            <form method="POST" action="{{ route('talangan.destroy', $transaksi) }}"
-                  onsubmit="return confirm('Hapus transaksi {{ $transaksi->kode }}?')">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn-danger">Hapus Transaksi</button>
-            </form>
-            <a href="{{ route('talangan.edit', $transaksi) }}" class="btn-primary">Sunting</a>
-        </div>
+        @if ($transaksi->otomatis)
+            <div class="mt-8 flex items-start gap-3 rounded-lg bg-brand-50 p-4 text-sm text-brand-800">
+                <x-icon name="peringatan" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                <span>
+                    Kontribusi ini lahir otomatis dari pencairan pinjaman
+                    <a href="{{ route('pinjaman.show', $transaksi->pinjaman) }}" class="font-semibold underline">{{ $transaksi->pinjaman->kode }}</a>,
+                    jadi tidak bisa disunting atau dihapus dari sini.
+                </span>
+            </div>
+        @else
+            @can('kelola')
+                <div class="mt-8 flex flex-wrap justify-end gap-3">
+                    <x-tombol-hapus :aksi="route('talangan.destroy', $transaksi)"
+                                    :pesan="'Transaksi ' . $transaksi->kode . ' akan dihapus permanen.'"
+                                    label="Hapus Transaksi" />
+                    <a href="{{ route('talangan.edit', $transaksi) }}" class="btn-primary">Sunting</a>
+                </div>
+            @endcan
+        @endif
     </div>
 </x-app-layout>

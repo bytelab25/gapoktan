@@ -14,6 +14,7 @@ class PembayaranPinjaman extends Model
 
     protected $fillable = [
         'kode',
+        'kode_setoran',
         'pinjaman_id',
         'tanggal',
         'bulan_bunga',
@@ -43,5 +44,21 @@ class PembayaranPinjaman extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Baris-baris lain dari setoran yang sama, termasuk baris ini sendiri.
+     * Satu setoran bisa terpecah ke beberapa pinjaman karena alokasi FIFO.
+     */
+    public function satuSetoran(): \Illuminate\Database\Eloquent\Collection
+    {
+        return static::with('pinjaman.kelompokTani')
+            ->when(
+                $this->kode_setoran,
+                fn ($query) => $query->where('kode_setoran', $this->kode_setoran),
+                fn ($query) => $query->whereKey($this->getKey()),
+            )
+            ->orderBy('id')
+            ->get();
     }
 }

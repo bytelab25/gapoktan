@@ -8,7 +8,11 @@
                 Faktur
             </a>
             @if ($pinjaman->status !== \App\Models\Pinjaman::STATUS_LUNAS)
-                <a href="{{ route('pinjaman.bayar', $pinjaman) }}" class="btn-primary">Bayar Pinjaman</a>
+                @can('kelola')
+                    <a href="{{ route('pembayaran.create', $pinjaman->kelompok_tani_id) }}" class="btn-primary">
+                        Bayar Pinjaman
+                    </a>
+                @endcan
             @endif
         </x-slot:aksi>
     </x-page-header>
@@ -17,9 +21,14 @@
         <x-stat-card label="Pinjaman Pokok" :nilai="rupiah($pinjaman->jumlah_pinjaman)" ikon="bank" />
         <x-stat-card label="Sisa Pokok" :nilai="rupiah($pinjaman->sisa_pokok)" ikon="keluar-uang" warna="merah" />
         <x-stat-card label="Bunga Terbayar" :nilai="rupiah($pinjaman->total_bunga_dibayar)" ikon="persen" warna="kuning" />
-        <x-stat-card label="Bunga Berjalan"
-                     :nilai="rupiah($pinjaman->bungaBerjalan())" ikon="riwayat" warna="biru">
-            <x-slot:catatan>{{ $pinjaman->bulanBungaBerjalan() }} bulan × {{ (float) $pinjaman->bunga_persen }}%</x-slot:catatan>
+        <x-stat-card label="Bunga Terhutang"
+                     :nilai="rupiah($bungaTerhutang)" ikon="riwayat" warna="biru">
+            <x-slot:catatan>
+                {{ $bulanBerjalan }} bulan × {{ (float) $pinjaman->bunga_persen }}%
+                @if ((float) $pinjaman->tunggakan_bunga > 0)
+                    + tunggakan {{ rupiah($pinjaman->tunggakan_bunga) }}
+                @endif
+            </x-slot:catatan>
         </x-stat-card>
     </div>
 
@@ -34,10 +43,14 @@
                 @foreach ([
                     'ID Pinjaman' => $pinjaman->kode,
                     'Tanggal Transaksi' => tanggal_id($pinjaman->tanggal_transaksi, 'd F Y'),
-                    'Tanggal Jatuh Tempo' => tanggal_id($pinjaman->tanggal_jatuh_tempo, 'd F Y'),
+                    'Tanggal Jatuh Tempo' => tanggal_id($pinjaman->tanggal_jatuh_tempo, 'd F Y')
+                        . ' (termin ' . $pinjaman->termin . ' — bulan ke-' . $pinjaman->bulan_termin . ')',
                     'Potongan Muka' => (float) $pinjaman->potongan_persen . '% — ' . rupiah($pinjaman->potongan_nominal),
                     'Jumlah Diterima' => rupiah($pinjaman->jumlah_diterima),
-                    'Bunga' => (float) $pinjaman->bunga_persen . '% per bulan',
+                    'Kontribusi Dana Talangan' => (float) $pinjaman->potongan_talangan_persen . '% — '
+                        . rupiah($pinjaman->danaTalangan->sum('jumlah')),
+                    'Bunga' => (float) $pinjaman->bunga_persen . '% per bulan, diakumulasi per '
+                        . \App\Models\Pinjaman::BULAN_PER_TERMIN . ' bulan',
                     'Deskripsi' => $pinjaman->deskripsi ?: '-',
                 ] as $label => $nilai)
                     <div class="py-3">
@@ -47,15 +60,13 @@
                 @endforeach
             </dl>
 
-            <div class="mt-6 flex flex-wrap justify-end gap-3">
-                <form method="POST" action="{{ route('pinjaman.destroy', $pinjaman) }}"
-                      onsubmit="return confirm('Hapus pinjaman {{ $pinjaman->kode }}?')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn-danger">Hapus</button>
-                </form>
-                <a href="{{ route('pinjaman.edit', $pinjaman) }}" class="btn-primary">Sunting</a>
-            </div>
+            @can('kelola')
+                <div class="mt-6 flex flex-wrap justify-end gap-3">
+                    <x-tombol-hapus :aksi="route('pinjaman.destroy', $pinjaman)"
+                                    :pesan="'Pinjaman ' . $pinjaman->kode . ' akan dihapus beserta baris kas dan kontribusi dana talangannya.'" />
+                    <a href="{{ route('pinjaman.edit', $pinjaman) }}" class="btn-primary">Sunting</a>
+                </div>
+            @endcan
         </div>
 
         <div class="card overflow-hidden lg:col-span-3">

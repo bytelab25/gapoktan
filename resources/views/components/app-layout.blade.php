@@ -14,7 +14,9 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak] { display: none !important; }</style>
 </head>
-<body class="font-sans">
+<body class="font-sans"
+      @if (session('sukses')) data-sukses="{{ session('sukses') }}" @endif
+      @if (session('gagal')) data-gagal="{{ session('gagal') }}" @endif>
 <div x-data="{ sidebarTerbuka: false }" class="min-h-screen">
     @include('layouts.partials.sidebar')
 
@@ -26,20 +28,7 @@
         @include('layouts.partials.topbar')
 
         <main class="p-6 lg:p-8">
-            @if (session('sukses'))
-                <div class="mb-6 flex items-start gap-3 rounded-lg border border-brand-200 bg-brand-50 p-4 text-sm text-brand-800">
-                    <x-icon name="centang" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-                    <span>{{ session('sukses') }}</span>
-                </div>
-            @endif
-
-            @if (session('gagal'))
-                <div class="mb-6 flex items-start gap-3 rounded-lg border border-danger-100 bg-danger-50 p-4 text-sm text-danger-700">
-                    <x-icon name="peringatan" class="mt-0.5 h-5 w-5 shrink-0 text-danger-500" />
-                    <span>{{ session('gagal') }}</span>
-                </div>
-            @endif
-
+            {{-- Pesan hasil aksi tampil sebagai toast SweetAlert, lihat resources/js/app.js --}}
             {{ $slot }}
         </main>
     </div>

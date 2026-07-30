@@ -1,13 +1,14 @@
 @php
-    $menu = [
+    $menu = collect([
         ['rute' => 'beranda',       'aktif' => 'beranda*',        'ikon' => 'beranda',   'label' => 'Beranda'],
-        ['rute' => 'pengguna.index','aktif' => 'pengguna.*',      'ikon' => 'pengguna',  'label' => 'Pengguna'],
+        ['rute' => 'pengguna.index','aktif' => 'pengguna.*',      'ikon' => 'pengguna',  'label' => 'Pengguna',
+         'izin' => 'lihat-pengguna'],
         ['rute' => 'kas.index',     'aktif' => 'kas.*',           'ikon' => 'kas',       'label' => 'Kas'],
-        ['rute' => 'pinjaman.index','aktif' => 'pinjaman.*',      'ikon' => 'pinjaman',  'label' => 'Pinjaman Kelompok'],
+        ['rute' => 'pinjaman.index','aktif' => 'pinjaman.*|pembayaran.*', 'ikon' => 'pinjaman', 'label' => 'Pinjaman Kelompok'],
         ['rute' => 'talangan.index','aktif' => 'talangan.*',      'ikon' => 'talangan',  'label' => 'Dana Talangan'],
         ['rute' => 'kelompok.index','aktif' => 'kelompok.*',      'ikon' => 'kelompok',  'label' => 'Kelompok Tani'],
         ['rute' => 'laporan.index', 'aktif' => 'laporan.*',       'ikon' => 'laporan',   'label' => 'Laporan Keuangan'],
-    ];
+    ])->filter(fn (array $item) => ! isset($item['izin']) || Gate::allows($item['izin']));
 @endphp
 
 <aside x-bind:class="sidebarTerbuka ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
@@ -23,7 +24,7 @@
 
     <nav class="flex-1 overflow-y-auto py-4">
         @foreach ($menu as $item)
-            @php $sedangAktif = request()->routeIs($item['aktif']); @endphp
+            @php $sedangAktif = request()->routeIs(explode('|', $item['aktif'])); @endphp
             <a href="{{ route($item['rute']) }}"
                @class([
                    'relative flex items-center gap-3 px-5 py-3 text-sm transition',

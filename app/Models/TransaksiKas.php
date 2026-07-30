@@ -22,6 +22,7 @@ class TransaksiKas extends Model
         'jenis',
         'kategori_kas_id',
         'kelompok_tani_id',
+        'pinjaman_id',
         'jumlah',
         'biaya',
         'deskripsi',
@@ -47,9 +48,23 @@ class TransaksiKas extends Model
         return $this->belongsTo(KelompokTani::class);
     }
 
+    public function pinjaman(): BelongsTo
+    {
+        return $this->belongsTo(Pinjaman::class);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Baris kas yang lahir otomatis dari pencairan pinjaman tidak boleh
+     * disunting manual, supaya angkanya tetap sama dengan pinjamannya.
+     */
+    public function getOtomatisAttribute(): bool
+    {
+        return $this->pinjaman_id !== null;
     }
 
     /**

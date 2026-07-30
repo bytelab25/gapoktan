@@ -57,14 +57,24 @@
             </div>
         </div>
 
-        <div class="mt-8 flex flex-wrap justify-end gap-3">
-            <form method="POST" action="{{ route('kas.destroy', $transaksi) }}"
-                  onsubmit="return confirm('Hapus transaksi {{ $transaksi->kode }}? Saldo semua transaksi setelahnya akan dihitung ulang.')">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn-danger">Hapus Transaksi</button>
-            </form>
-            <a href="{{ route('kas.edit', $transaksi) }}" class="btn-primary">Sunting</a>
-        </div>
+        @if ($transaksi->otomatis)
+            <div class="mt-8 flex items-start gap-3 rounded-lg bg-brand-50 p-4 text-sm text-brand-800">
+                <x-icon name="peringatan" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                <span>
+                    Transaksi ini dibuat otomatis dari pencairan pinjaman
+                    <a href="{{ route('pinjaman.show', $transaksi->pinjaman) }}" class="font-semibold underline">{{ $transaksi->pinjaman->kode }}</a>.
+                    Ubah data pinjamannya bila nominalnya salah.
+                </span>
+            </div>
+        @else
+            @can('kelola')
+                <div class="mt-8 flex flex-wrap justify-end gap-3">
+                    <x-tombol-hapus :aksi="route('kas.destroy', $transaksi)"
+                                    :pesan="'Transaksi ' . $transaksi->kode . ' dihapus, saldo semua transaksi setelahnya dihitung ulang.'"
+                                    label="Hapus Transaksi" />
+                    <a href="{{ route('kas.edit', $transaksi) }}" class="btn-primary">Sunting</a>
+                </div>
+            @endcan
+        @endif
     </div>
 </x-app-layout>

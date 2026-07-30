@@ -2,10 +2,12 @@
     <x-page-header judul="Kelompok Tani"
                    deskripsi="Data kelompok tani binaan Gapoktan Swagotra Arthagiri.">
         <x-slot:aksi>
-            <a href="{{ route('kelompok.create') }}" class="btn-primary">
-                <x-icon name="plus" class="h-4 w-4" />
-                Buat Kelompok Tani
-            </a>
+            @can('kelola')
+                <a href="{{ route('kelompok.create') }}" class="btn-primary">
+                    <x-icon name="plus" class="h-4 w-4" />
+                    Buat Kelompok Tani
+                </a>
+            @endcan
         </x-slot:aksi>
     </x-page-header>
 
@@ -59,7 +61,9 @@
                     @empty
                         <x-empty-state kolom="5" pesan="Belum ada kelompok tani terdaftar.">
                             <x-slot:aksi>
-                                <a href="{{ route('kelompok.create') }}" class="btn-primary">Buat Kelompok Tani</a>
+                                @can('kelola')
+                                    <a href="{{ route('kelompok.create') }}" class="btn-primary">Buat Kelompok Tani</a>
+                                @endcan
                             </x-slot:aksi>
                         </x-empty-state>
                     @endforelse
@@ -67,8 +71,6 @@
             </table>
         </div>
 
-        @if ($daftarKelompok->hasPages())
-            <div class="border-t border-slate-200 px-6 py-4">{{ $daftarKelompok->links() }}</div>
-        @endif
+        <x-tabel-kaki :paginator="$daftarKelompok" />
     </div>
 </x-app-layout>

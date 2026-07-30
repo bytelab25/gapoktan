@@ -18,8 +18,9 @@ class PenggunaController extends Controller
             ->when($request->string('cari')->trim()->value(), fn ($query, $cari) => $query
                 ->where('name', 'like', "%{$cari}%")
                 ->orWhere('username', 'like', "%{$cari}%"))
+            ->when($request->string('role')->trim()->value(), fn ($query, $role) => $query->where('role', $role))
             ->latest('id')
-            ->paginate(10)
+            ->paginate($request->integer('per_halaman', 10))
             ->withQueryString();
 
         return view('pengguna.index', [
@@ -40,7 +41,7 @@ class PenggunaController extends Controller
             'no_hp' => ['required', 'string', 'max:20'],
             'alamat' => ['required', 'string', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => ['required', Rule::in(User::ROLES)],
+            'role' => ['required', Rule::in(array_keys(User::LABEL_ROLE))],
         ], attributes: $this->namaAtribut());
 
         $pengguna = User::create($data);
@@ -74,12 +75,16 @@ class PenggunaController extends Controller
             'no_hp' => ['required', 'string', 'max:20'],
             'alamat' => ['required', 'string', 'max:255'],
             'password' => ['nullable', 'confirmed', Password::defaults()],
-            'role' => ['required', Rule::in(User::ROLES)],
+            'role' => ['required', Rule::in(array_keys(User::LABEL_ROLE))],
         ], attributes: $this->namaAtribut());
 
         // Password hanya diganti kalau kolomnya benar-benar diisi.
         if (blank($data['password'])) {
             unset($data['password']);
+        }
+
+        if ($this->administratorTerakhir($pengguna) && ! in_array($data['role'], User::ROLE_ADMIN, true)) {
+            return back()->with('gagal', 'Administrator terakhir tidak bisa diturunkan rolenya.');
         }
 
         $pengguna->update($data);
@@ -101,6 +106,10 @@ class PenggunaController extends Controller
             return back()->with('gagal', 'Pengguna terakhir tidak bisa dihapus.');
         }
 
+        if ($this->administratorTerakhir($pengguna)) {
+            return back()->with('gagal', 'Administrator terakhir tidak bisa dihapus.');
+        }
+
         $nama = $pengguna->name;
         $pengguna->delete();
 
@@ -109,6 +118,16 @@ class PenggunaController extends Controller
         return redirect()
             ->route('pengguna.index')
             ->with('sukses', 'Pengguna berhasil dihapus.');
+    }
+
+    /**
+     * Sistem harus selalu menyisakan satu administrator penuh, kalau tidak
+     * tidak ada lagi yang bisa mengelola akun.
+     */
+    private function administratorTerakhir(User $pengguna): bool
+    {
+        return $pengguna->isAdmin()
+            && User::whereIn('role', User::ROLE_ADMIN)->count() <= 1;
     }
 
     /**

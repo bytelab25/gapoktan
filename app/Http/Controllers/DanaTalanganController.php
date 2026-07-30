@@ -18,9 +18,10 @@ class DanaTalanganController extends Controller
         $transaksi = DanaTalangan::query()
             ->with('kelompokTani')
             ->when($request->string('jenis')->trim()->value(), fn ($query, $jenis) => $query->where('jenis', $jenis))
+            ->when($request->integer('kelompok'), fn ($query, $id) => $query->where('kelompok_tani_id', $id))
             ->orderByDesc('tanggal')
             ->orderByDesc('id')
-            ->paginate(10)
+            ->paginate($request->integer('per_halaman', 10))
             ->withQueryString();
 
         return view('talangan.index', [
@@ -29,6 +30,7 @@ class DanaTalanganController extends Controller
             'totalKontribusi' => DanaTalangan::where('jenis', DanaTalangan::JENIS_MASUK)->sum('jumlah'),
             'jumlahKlaim' => DanaTalangan::where('jenis', DanaTalangan::JENIS_KELUAR)->count(),
             'pengaturan' => Pengaturan::ambil(),
+            'daftarKelompok' => KelompokTani::orderBy('nama_kelompok')->get(),
         ]);
     }
 
@@ -70,13 +72,21 @@ class DanaTalanganController extends Controller
         ]);
     }
 
-    public function edit(DanaTalangan $talangan): View
+    public function edit(DanaTalangan $talangan): View|RedirectResponse
     {
+        if ($talangan->otomatis) {
+            return redirect()->route('talangan.show', $talangan)->with('gagal', $this->pesanOtomatis());
+        }
+
         return view('talangan.edit', [...$this->dataForm(), 'transaksi' => $talangan]);
     }
 
     public function update(Request $request, DanaTalangan $talangan): RedirectResponse
     {
+        if ($talangan->otomatis) {
+            return back()->with('gagal', $this->pesanOtomatis());
+        }
+
         $talangan->update($this->validasi($request));
 
         LogAktivitas::catat(
@@ -92,6 +102,10 @@ class DanaTalanganController extends Controller
 
     public function destroy(DanaTalangan $talangan): RedirectResponse
     {
+        if ($talangan->otomatis) {
+            return back()->with('gagal', $this->pesanOtomatis());
+        }
+
         $kode = $talangan->kode;
         $jumlah = rupiah($talangan->jumlah);
         $talangan->delete();
@@ -136,6 +150,11 @@ class DanaTalanganController extends Controller
 
     private function kodeBerikutnya(): string
     {
-        return sprintf('DT-%04d', DanaTalangan::max('id') + 1);
+        return sprintf('DT-%04d', (int) DanaTalangan::max('id') + 1);
+    }
+
+    private function pesanOtomatis(): string
+    {
+        return 'Kontribusi ini lahir otomatis dari pencairan pinjaman. Ubah data pinjamannya bila nominalnya salah.';
     }
 }

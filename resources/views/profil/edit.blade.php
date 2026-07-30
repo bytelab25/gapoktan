@@ -31,7 +31,7 @@
 
             <div>
                 <label class="label-field">Role</label>
-                <input type="text" value="{{ $pengguna->role }}" readonly
+                <input type="text" value="{{ $pengguna->label_role }}" readonly
                        class="input-field cursor-not-allowed bg-slate-100 text-slate-500">
                 <p class="mt-1.5 text-xs text-slate-500">Role hanya bisa diubah lewat modul Pengguna.</p>
             </div>

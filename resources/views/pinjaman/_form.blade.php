@@ -7,8 +7,18 @@
 <div x-data="{
         jumlah: {{ (float) old('jumlah_pinjaman', $pinjaman?->jumlah_pinjaman ?? 0) }},
         persen: {{ $persen }},
+        tanggal: '{{ old('tanggal_transaksi', optional($pinjaman?->tanggal_transaksi)->format('Y-m-d') ?? now()->format('Y-m-d')) }}',
+        terminBulan: {{ \App\Models\Pinjaman::BULAN_PER_TERMIN * ($pinjaman?->termin ?? 1) }},
         get potongan() { return Math.round(this.jumlah * this.persen) / 100 },
         get diterima() { return this.jumlah - this.potongan },
+        /* Jatuh tempo selalu mengikuti kelipatan 4 bulan dari tanggal pencairan. */
+        get jatuhTempo() {
+            if (! this.tanggal) return '';
+            const mulai = new Date(this.tanggal + 'T00:00:00');
+            const tempo = new Date(mulai);
+            tempo.setMonth(tempo.getMonth() + this.terminBulan);
+            return tempo.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        },
         rupiah(nilai) { return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(nilai || 0)) },
      }">
 
@@ -40,17 +50,24 @@
         <div>
             <label for="tanggal_transaksi" class="label-field">Tanggal Transaksi</label>
             <input id="tanggal_transaksi" name="tanggal_transaksi" type="date" required
-                   value="{{ old('tanggal_transaksi', optional($pinjaman?->tanggal_transaksi)->format('Y-m-d') ?? now()->format('Y-m-d')) }}"
-                   class="input-field">
+                   x-model="tanggal" class="input-field">
             <x-input-error :messages="$errors->get('tanggal_transaksi')" class="mt-2" />
         </div>
 
         <div>
-            <label for="tanggal_jatuh_tempo" class="label-field">Tanggal Jatuh Tempo</label>
-            <input id="tanggal_jatuh_tempo" name="tanggal_jatuh_tempo" type="date" required
-                   value="{{ old('tanggal_jatuh_tempo', optional($pinjaman?->tanggal_jatuh_tempo)->format('Y-m-d') ?? now()->addYear()->format('Y-m-d')) }}"
-                   class="input-field">
-            <x-input-error :messages="$errors->get('tanggal_jatuh_tempo')" class="mt-2" />
+            <label class="label-field">Tanggal Jatuh Tempo</label>
+            <div class="relative">
+                <input type="text" readonly x-bind:value="jatuhTempo"
+                       class="input-field cursor-not-allowed bg-slate-100 pr-11 text-slate-500">
+                <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400">
+                    <x-icon name="kalender" class="h-4 w-4" />
+                </span>
+            </div>
+            <p class="mt-1.5 text-xs italic text-slate-500">
+                Pinjaman kelompok berjalan per termin {{ \App\Models\Pinjaman::BULAN_PER_TERMIN }} bulan,
+                jadi jatuh tempo dihitung otomatis
+                @if ($pinjaman) (termin berjalan: {{ $pinjaman->termin }}) @endif.
+            </p>
         </div>
 
         <div>
@@ -100,7 +117,9 @@
     </div>
 
     <div class="mt-6 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
-        Bunga berjalan <span class="font-semibold text-slate-900">{{ $pinjaman ? (float) $pinjaman->bunga_persen : (float) $pengaturan->suku_bunga_pinjaman }}% per bulan</span>
-        dihitung saat pembayaran, dari sisa pokok yang belum lunas.
+        Bunga <span class="font-semibold text-slate-900">{{ $pinjaman ? (float) $pinjaman->bunga_persen : (float) $pengaturan->suku_bunga_pinjaman }}% per bulan</span>
+        dihitung dari sisa pokok yang belum lunas dan diakumulasi per
+        {{ \App\Models\Pinjaman::BULAN_PER_TERMIN }} bulan. Saat menyetor, bunga dilunasi lebih dulu
+        sebelum pokok terpotong.
     </div>
 </div>

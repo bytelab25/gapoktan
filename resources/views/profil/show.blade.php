@@ -8,7 +8,7 @@
             </span>
             <div>
                 <p class="text-lg font-bold text-slate-900">{{ $pengguna->name }}</p>
-                <p class="text-sm text-slate-500">{{ $pengguna->role }}</p>
+                <p class="text-sm text-slate-500">{{ $pengguna->label_role }}</p>
             </div>
         </div>
 

@@ -12,7 +12,12 @@
                 'Username' => $pengguna->username,
                 'Nomor HP' => $pengguna->no_hp ?: '-',
                 'Alamat' => $pengguna->alamat ?: '-',
-                'Role' => $pengguna->role,
+                'Role' => $pengguna->label_role,
+                'Hak Akses' => match (true) {
+                    $pengguna->isAdmin() => 'Administrator penuh — termasuk mengelola akun pengguna',
+                    $pengguna->role === \App\Models\User::ROLE_KETUA => 'Kelola seluruh data operasional dan pengaturan suku bunga',
+                    default => 'Hanya melihat data, tidak bisa menambah atau mengubah',
+                },
             ] as $label => $nilai)
                 <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3">
                     <dt class="text-sm text-slate-500">{{ $label }}</dt>
@@ -21,14 +26,13 @@
             @endforeach
         </dl>
 
-        <div class="mt-8 flex flex-wrap justify-end gap-3">
-            <form method="POST" action="{{ route('pengguna.destroy', $pengguna) }}"
-                  onsubmit="return confirm('Hapus pengguna {{ $pengguna->name }}?')">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn-danger">Hapus Pengguna</button>
-            </form>
-            <a href="{{ route('pengguna.edit', $pengguna) }}" class="btn-primary">Sunting Data</a>
-        </div>
+        @can('kelola-pengguna')
+            <div class="mt-8 flex flex-wrap justify-end gap-3">
+                <x-tombol-hapus :aksi="route('pengguna.destroy', $pengguna)"
+                                :pesan="'Akun ' . $pengguna->name . ' akan dihapus permanen.'"
+                                label="Hapus Pengguna" />
+                <a href="{{ route('pengguna.edit', $pengguna) }}" class="btn-primary">Sunting Data</a>
+            </div>
+        @endcan
     </div>
 </x-app-layout>

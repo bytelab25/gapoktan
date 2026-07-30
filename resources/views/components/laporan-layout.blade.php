@@ -32,7 +32,7 @@
                     <p class="text-sm text-slate-500">Mengetahui,</p>
                     <div class="mt-16 w-56 border-t border-slate-300 pt-2">
                         <p class="text-sm font-semibold text-slate-900">{{ auth()->user()->name }}</p>
-                        <p class="text-xs text-slate-500">{{ auth()->user()->role }}</p>
+                        <p class="text-xs text-slate-500">{{ auth()->user()->label_role }}</p>
                     </div>
                 </div>
             </div>

@@ -19,7 +19,7 @@ class KelompokTaniController extends Controller
                 ->where('nama_kelompok', 'like', "%{$cari}%")
                 ->orWhere('nama_ketua', 'like', "%{$cari}%"))
             ->latest('id')
-            ->paginate(10)
+            ->paginate($request->integer('per_halaman', 10))
             ->withQueryString();
 
         return view('kelompok.index', [
@@ -58,12 +58,14 @@ class KelompokTaniController extends Controller
         ]);
     }
 
-    public function transaksi(KelompokTani $kelompok): View
+    public function transaksi(Request $request, KelompokTani $kelompok): View
     {
         $pinjaman = $kelompok->pinjaman()
             ->with('pembayaran')
             ->latest('tanggal_transaksi')
-            ->paginate(10);
+            ->latest('id')
+            ->paginate($request->integer('per_halaman', 10))
+            ->withQueryString();
 
         return view('kelompok.transaksi', [
             'kelompok' => $kelompok,

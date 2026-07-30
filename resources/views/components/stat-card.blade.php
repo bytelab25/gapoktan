@@ -21,7 +21,9 @@
         @endif
     </div>
 
-    <p class="mt-3 text-2xl font-bold {{ $warnaNilai }}">{{ $nilai }}</p>
+    {{-- Nominal rupiah tidak boleh terpotong jadi dua baris walau kartunya
+         menyempit saat empat kartu berjejer. --}}
+    <p class="mt-3 whitespace-nowrap text-xl font-bold {{ $warnaNilai }}">{{ $nilai }}</p>
 
     @isset($catatan)
         <p class="mt-1 text-xs text-slate-500">{{ $catatan }}</p>

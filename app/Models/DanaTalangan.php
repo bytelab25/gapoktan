@@ -18,6 +18,7 @@ class DanaTalangan extends Model
     protected $fillable = [
         'kode',
         'kelompok_tani_id',
+        'pinjaman_id',
         'tanggal',
         'jenis',
         'penerima',
@@ -39,9 +40,23 @@ class DanaTalangan extends Model
         return $this->belongsTo(KelompokTani::class);
     }
 
+    public function pinjaman(): BelongsTo
+    {
+        return $this->belongsTo(Pinjaman::class);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Kontribusi 1% yang lahir otomatis dari pencairan pinjaman — dikelola
+     * sistem, jadi tidak boleh disunting atau dihapus manual.
+     */
+    public function getOtomatisAttribute(): bool
+    {
+        return $this->pinjaman_id !== null;
     }
 
     public function getNilaiAttribute(): float

@@ -3,10 +3,16 @@
                    :deskripsi="$kelompok->nama_kelompok"
                    :kembali="route('kelompok.index')">
         <x-slot:aksi>
-            <a href="{{ route('pinjaman.create', ['kelompok' => $kelompok->id]) }}" class="btn-primary">
-                <x-icon name="plus" class="h-4 w-4" />
-                Buat Pinjaman
-            </a>
+            @can('kelola')
+                <a href="{{ route('pembayaran.create', $kelompok) }}" class="btn-ghost">
+                    <x-icon name="kas" class="h-4 w-4" />
+                    Bayar Pinjaman
+                </a>
+                <a href="{{ route('pinjaman.create', ['kelompok' => $kelompok->id]) }}" class="btn-primary">
+                    <x-icon name="plus" class="h-4 w-4" />
+                    Buat Pinjaman
+                </a>
+            @endcan
         </x-slot:aksi>
     </x-page-header>
 
@@ -54,8 +60,6 @@
             </table>
         </div>
 
-        @if ($daftarPinjaman->hasPages())
-            <div class="border-t border-slate-200 px-6 py-4">{{ $daftarPinjaman->links() }}</div>
-        @endif
+        <x-tabel-kaki :paginator="$daftarPinjaman" />
     </div>
 </x-app-layout>
