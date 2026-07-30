@@ -3,6 +3,21 @@
 @tailwind utilities;
 
 @layer base {
+    /*
+     * Sistem ini hanya punya tampilan terang. Tanpa `color-scheme: light`,
+     * browser di OS mode gelap melukis kanvas root pakai warna gelap bawaannya
+     * pada sela antar-navigasi, jadi terlihat berkedip hitam saat pindah
+     * halaman. Latar juga dipasang di `html`, bukan cuma `body`, supaya
+     * warnanya sudah ada sejak cat pertama.
+     */
+    :root {
+        color-scheme: light;
+    }
+
+    html {
+        @apply bg-slate-50;
+    }
+
     body {
         @apply bg-slate-50 text-slate-900 antialiased;
     }

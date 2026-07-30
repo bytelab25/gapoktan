@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    <meta name="color-scheme" content="light">
+    <style>html { background-color: #F8FAFC; }</style>
+
     <title>Masuk — {{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('img/favicon.png') }}" sizes="any">
 

@@ -53,7 +53,7 @@
                     <p class="text-sm text-slate-500">{{ $hasil['periode'] }}</p>
                 </div>
 
-                <a href="{{ route('laporan.cetak', request()->query()) }}" target="_blank" class="btn-ghost">
+                <a href="{{ route('laporan.unduh', request()->query()) }}" class="btn-ghost">
                     <x-icon name="unduh" class="h-4 w-4" />
                     Unduh Laporan
                 </a>
@@ -63,7 +63,7 @@
                 @include('laporan.hasil.ringkasan', ['ringkasan' => $hasil['ringkasan']])
             @endif
 
-            @include('laporan.hasil.'.str_replace('_', '-', $hasil['jenis']), ['hasil' => $hasil, 'cetak' => false])
+            @include('laporan.hasil.'.str_replace('_', '-', $hasil['jenis']), ['hasil' => $hasil])
         </div>
     @endif
 </x-app-layout>

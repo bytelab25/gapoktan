@@ -1,4 +1,4 @@
-<div class="{{ $cetak ? '' : 'p-6' }} space-y-10">
+<div class="space-y-10 p-6">
     <section>
         <h3 class="border-b border-slate-200 pb-2 text-base font-bold uppercase tracking-wide text-slate-900">
             Posisi Aset

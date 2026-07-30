@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    {{-- Dibaca browser sebelum stylesheet turun, jadi kanvas tidak sempat
+         gelap di sela antar-halaman saat OS memakai mode gelap. --}}
+    <meta name="color-scheme" content="light">
+    <style>html { background-color: #F8FAFC; }</style>
+
     <title>{{ $title ?? 'Beranda' }} — {{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('img/favicon.png') }}" sizes="any">
 

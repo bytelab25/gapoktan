@@ -199,3 +199,37 @@ sama dengan Laporan Kas.
   membuat dua baris kas keluar (dana yang diterima kelompok dan setoran ke pos dana talangan)
   serta satu baris dana talangan masuk. Porsi operasional tidak jadi baris kas karena uangnya
   tidak pernah keluar — hanya disimpan di kolom `biaya`.
+
+## Unduh Laporan (30 Juli 2026)
+
+Tombol `Unduh Laporan` sekarang menghasilkan PDF lewat `barryvdh/laravel-dompdf`, bukan
+dialog cetak browser. Templatnya terpisah di `resources/views/laporan/pdf.blade.php` dan
+memakai CSS dasar saja — dompdf tidak mengerti flexbox maupun grid, jadi tata letaknya
+tabel. Catatan teknis yang perlu diingat:
+
+- Font `Helvetica` dipakai karena termasuk font inti PDF dan tidak perlu ditanam. Memakai
+  `DejaVu Sans` membengkakkan berkas dari ~73 KB jadi ~930 KB tanpa manfaat, sebab semua
+  karakter di laporan ini tercakup WinAnsi.
+- `counter(pages)` tidak berfungsi di dompdf (selalu 0), jadi kaki halaman hanya menulis
+  nomor halaman tanpa totalnya.
+- `page-break-inside: avoid` di level tabel membuat dompdf mendorong blok tanda tangan ke
+  halaman baru yang kosong. Aturan global pada `tr` sudah cukup.
+- Laporan tabel dicetak lanskap, laporan akhir tahun potret.
+
+Halaman `laporan/cetak` beserta komponen `laporan-layout` dan `laporan-kop` dihapus karena
+sudah tidak dipakai.
+
+## Kedip Gelap Antar-Halaman (30 Juli 2026)
+
+Sistem ini hanya punya tampilan terang, tapi tidak pernah menyatakannya ke browser. Di OS
+mode gelap, browser melukis kanvas root dengan warna gelap bawaannya pada sela antar-navigasi
+— dan di mode `npm run dev` Vite menyuntikkan CSS lewat JavaScript, sehingga selanya makin
+terlihat. Perbaikannya berlapis:
+
+1. `<meta name="color-scheme" content="light">` plus `<style>html { background-color: #F8FAFC }</style>`
+   inline di `<head>` setiap layout, dibaca browser sebelum stylesheet turun.
+2. `:root { color-scheme: light; }` dan latar pada `html` (bukan cuma `body`) di
+   `resources/css/app.css`.
+
+Diverifikasi dengan Chrome yang dipaksa `prefers-color-scheme: dark`: seluruh halaman tetap
+`color-scheme: light` dengan latar `rgb(248, 250, 252)`.

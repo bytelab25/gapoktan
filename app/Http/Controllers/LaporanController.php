@@ -7,8 +7,11 @@ use App\Models\KategoriKas;
 use App\Models\PembayaranPinjaman;
 use App\Models\Pinjaman;
 use App\Models\TransaksiKas;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class LaporanController extends Controller
@@ -56,13 +59,35 @@ class LaporanController extends Controller
     }
 
     /**
-     * Versi berkop untuk dicetak atau disimpan sebagai PDF.
+     * Versi PDF berkop, dirender dompdf lalu diunduh langsung.
      */
-    public function cetak(Request $request): View
+    public function unduh(Request $request): Response
     {
-        return view('laporan.cetak', [
-            'hasil' => $this->rakit($this->validasi($request), perHalaman: null),
+        $hasil = $this->rakit($this->validasi($request), perHalaman: null);
+
+        $pdf = Pdf::loadView('laporan.pdf', [
+            'hasil' => $hasil,
+            'penandatangan' => $request->user(),
+            'dicetakPada' => now(),
         ]);
+
+        // Laporan tabel butuh lanskap karena kolomnya banyak; laporan akhir
+        // tahun berbentuk daftar, jadi lebih pas potret.
+        $pdf->setPaper('a4', $hasil['jenis'] === 'akhir_tahun' ? 'portrait' : 'landscape');
+
+        return $pdf->download($this->namaBerkas($hasil));
+    }
+
+    /**
+     * @param  array<string, mixed>  $hasil
+     */
+    private function namaBerkas(array $hasil): string
+    {
+        $bagian = $hasil['jenis'] === 'akhir_tahun'
+            ? (string) $hasil['tahun']
+            : $hasil['dari']->format('Y-m-d').'-sd-'.$hasil['sampai']->format('Y-m-d');
+
+        return Str::slug($hasil['judul'].' '.$bagian).'.pdf';
     }
 
     /**

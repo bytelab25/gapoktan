@@ -62,7 +62,7 @@ Route::middleware('auth')->group(function () {
     Route::get('beranda', BerandaController::class)->name('beranda');
 
     Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
-    Route::get('laporan/cetak', [LaporanController::class, 'cetak'])->name('laporan.cetak');
+    Route::get('laporan/unduh', [LaporanController::class, 'unduh'])->name('laporan.unduh');
 
     Route::get('log', LogAktivitasController::class)->name('log.index');
 
