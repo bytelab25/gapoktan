@@ -52,8 +52,14 @@ Route::middleware('auth')->group(function () {
         Route::resource('pengguna', PenggunaController::class)->except(['index', 'show']);
     });
 
-    Route::middleware('can:lihat-pengguna')->group(function () {
+    /*
+     * Menu pengurus. Ketua boleh melihat, pengguna biasa tidak.
+     */
+    Route::middleware('can:lihat-pengurus')->group(function () {
         Route::resource('pengguna', PenggunaController::class)->only(['index', 'show']);
+
+        Route::get('kelompok/{kelompok}/transaksi', [KelompokTaniController::class, 'transaksi'])->name('kelompok.transaksi');
+        Route::resource('kelompok', KelompokTaniController::class)->only(['index', 'show']);
     });
 
     /*
@@ -69,9 +75,6 @@ Route::middleware('auth')->group(function () {
     Route::get('profil', [ProfilController::class, 'show'])->name('profil.show');
     Route::get('profil/sunting', [ProfilController::class, 'edit'])->name('profil.edit');
     Route::put('profil', [ProfilController::class, 'update'])->name('profil.update');
-
-    Route::get('kelompok/{kelompok}/transaksi', [KelompokTaniController::class, 'transaksi'])->name('kelompok.transaksi');
-    Route::resource('kelompok', KelompokTaniController::class)->only(['index', 'show']);
 
     Route::get('kas/{kas}/faktur', [KasController::class, 'faktur'])->name('kas.faktur');
     Route::resource('kas', KasController::class)->only(['index', 'show'])->parameters(['kas' => 'kas']);

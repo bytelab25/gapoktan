@@ -2,11 +2,12 @@
     $menu = collect([
         ['rute' => 'beranda',       'aktif' => 'beranda*',        'ikon' => 'beranda',   'label' => 'Beranda'],
         ['rute' => 'pengguna.index','aktif' => 'pengguna.*',      'ikon' => 'pengguna',  'label' => 'Pengguna',
-         'izin' => 'lihat-pengguna'],
+         'izin' => 'lihat-pengurus'],
         ['rute' => 'kas.index',     'aktif' => 'kas.*',           'ikon' => 'kas',       'label' => 'Kas'],
         ['rute' => 'pinjaman.index','aktif' => 'pinjaman.*|pembayaran.*', 'ikon' => 'pinjaman', 'label' => 'Pinjaman Kelompok'],
         ['rute' => 'talangan.index','aktif' => 'talangan.*',      'ikon' => 'talangan',  'label' => 'Dana Talangan'],
-        ['rute' => 'kelompok.index','aktif' => 'kelompok.*',      'ikon' => 'kelompok',  'label' => 'Kelompok Tani'],
+        ['rute' => 'kelompok.index','aktif' => 'kelompok.*',      'ikon' => 'kelompok',  'label' => 'Kelompok Tani',
+         'izin' => 'lihat-pengurus'],
         ['rute' => 'laporan.index', 'aktif' => 'laporan.*',       'ikon' => 'laporan',   'label' => 'Laporan Keuangan'],
     ])->filter(fn (array $item) => ! isset($item['izin']) || Gate::allows($item['izin']));
 @endphp

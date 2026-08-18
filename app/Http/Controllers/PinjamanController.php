@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PinjamanController extends Controller
@@ -42,6 +43,18 @@ class PinjamanController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validasi($request);
+
+        // Kelompok yang belum pernah menyetor untuk pinjaman berjalannya tidak
+        // boleh menumpuk pinjaman baru.
+        $kelompok = KelompokTani::with('pinjaman.pembayaran')->findOrFail($data['kelompok_tani_id']);
+
+        if (! $kelompok->bisaMengajukanPinjaman()) {
+            throw ValidationException::withMessages([
+                'kelompok_tani_id' => $kelompok->nama_kelompok.' belum menyetor apa pun untuk pinjaman '
+                    .'yang sedang berjalan, jadi belum bisa mengajukan pinjaman baru.',
+            ]);
+        }
+
         $pengaturan = Pengaturan::ambil();
 
         // Potongan muka menggabungkan biaya operasional dan kontribusi dana talangan.
@@ -179,7 +192,7 @@ class PinjamanController extends Controller
         $pengaturan = Pengaturan::ambil();
 
         return [
-            'daftarKelompok' => KelompokTani::orderBy('nama_kelompok')->get(),
+            'daftarKelompok' => KelompokTani::with('pinjaman.pembayaran')->orderBy('nama_kelompok')->get(),
             'pengaturan' => $pengaturan,
             'persenPotongan' => (float) $pengaturan->potongan_operasional + (float) $pengaturan->potongan_dana_talangan,
         ];

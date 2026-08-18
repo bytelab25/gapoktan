@@ -55,6 +55,26 @@
         @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-300;
     }
 
+    /* Versi ringkas untuk tombol di dalam baris tabel. Didefinisikan setelah
+       varian warna supaya padding dan ukuran teksnya yang menang. */
+    .btn-sm {
+        @apply px-3.5 py-2 text-xs;
+    }
+
+    /* Tombol pintasan pengisi nilai, mis. "Bayar bunga saja". Bentuknya harus
+       terbaca sebagai tombol, bukan tautan teks. */
+    .chip {
+        @apply inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5
+               text-xs font-semibold text-brand-700 transition hover:border-brand-300 hover:bg-brand-100
+               focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1;
+    }
+
+    /* Penanda aksi yang sedang tidak tersedia. */
+    .chip-mati {
+        @apply inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5
+               text-xs font-semibold text-slate-400;
+    }
+
     .badge {
         @apply inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide;
     }

@@ -24,7 +24,7 @@
                            placeholder="Cari nama atau username" class="input-field w-64 py-2 pl-9 text-sm">
                 </div>
 
-                <select name="role" onchange="this.form.submit()" class="input-field py-2 text-sm">
+                <select name="role" onchange="this.form.submit()" class="input-field w-44 py-2 text-sm">
                     <option value="">Semua Role</option>
                     @foreach (\App\Models\User::LABEL_ROLE as $nilai => $label)
                         <option value="{{ $nilai }}" @selected(request('role') === $nilai)>{{ $label }}</option>

@@ -24,7 +24,7 @@
             <h2 class="text-lg font-semibold text-slate-900">Daftar Pinjaman</h2>
 
             <form method="GET" class="flex flex-wrap items-center gap-3">
-                <select name="kelompok" onchange="this.form.submit()" class="input-field py-2 text-sm">
+                <select name="kelompok" onchange="this.form.submit()" class="input-field w-48 py-2 text-sm">
                     <option value="">Semua Kelompok</option>
                     @foreach ($daftarKelompok as $kelompok)
                         <option value="{{ $kelompok->id }}" @selected(request('kelompok') == $kelompok->id)>
@@ -33,7 +33,7 @@
                     @endforeach
                 </select>
 
-                <select name="status" onchange="this.form.submit()" class="input-field py-2 text-sm">
+                <select name="status" onchange="this.form.submit()" class="input-field w-44 py-2 text-sm">
                     <option value="">Semua Status</option>
                     @foreach (\App\Models\Pinjaman::LABEL_STATUS as $nilai => $label)
                         <option value="{{ $nilai }}" @selected(request('status') === $nilai)>{{ $label }}</option>

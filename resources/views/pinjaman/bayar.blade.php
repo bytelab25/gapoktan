@@ -48,6 +48,7 @@
                         <thead class="table-head">
                             <tr>
                                 <th class="px-5 py-3 text-left">ID Pinjaman</th>
+                                <th class="px-5 py-3 text-left">Deskripsi</th>
                                 <th class="px-5 py-3 text-left">Jatuh Tempo</th>
                                 <th class="px-5 py-3 text-right">Sisa Pokok</th>
                                 <th class="px-5 py-3 text-right">Bunga Terhutang</th>
@@ -62,6 +63,9 @@
                                         <span class="block text-xs text-slate-500">
                                             Cair {{ tanggal_id($pinjaman->tanggal_transaksi) }} · Termin {{ $pinjaman->termin }}
                                         </span>
+                                    </td>
+                                    <td class="max-w-xs px-5 py-4 text-slate-600">
+                                        {{ $pinjaman->deskripsi ?: '—' }}
                                     </td>
                                     <td class="whitespace-nowrap px-5 py-4">
                                         <span class="text-slate-600">{{ tanggal_id($pinjaman->tanggal_jatuh_tempo) }}</span>
@@ -81,13 +85,16 @@
                                     </td>
                                 </tr>
                             @empty
-                                <x-empty-state kolom="4" pesan="Kelompok ini tidak punya tagihan pinjaman." />
+                                <x-empty-state kolom="5"
+                                               :pesan="$belumJatuhTermin->isEmpty()
+                                                   ? 'Kelompok ini tidak punya tagihan pinjaman.'
+                                                   : 'Belum ada pinjaman yang jatuh termin. Lihat daftar di bawah.'" />
                             @endforelse
                         </tbody>
                         @if ($tagihan->isNotEmpty())
                             <tfoot class="border-t-2 border-slate-200 bg-slate-50/60">
                                 <tr>
-                                    <td colspan="2" class="px-5 py-3.5 text-right font-semibold text-slate-700">Total</td>
+                                    <td colspan="3" class="px-5 py-3.5 text-right font-semibold text-slate-700">Total</td>
                                     <td class="whitespace-nowrap px-5 py-3.5 text-right font-bold text-slate-900">
                                         {{ rupiah($totalSisaPokok) }}
                                     </td>
@@ -101,6 +108,47 @@
                 </div>
             </div>
 
+            {{-- Pinjaman yang belum genap satu termin belum boleh disetor. --}}
+            @if ($belumJatuhTermin->isNotEmpty())
+                <div class="card mt-6 overflow-hidden">
+                    <div class="flex items-start gap-3 border-b border-slate-200 bg-warn-50 p-5">
+                        <x-icon name="peringatan" class="mt-0.5 h-5 w-5 shrink-0 text-warn-700" />
+                        <div>
+                            <h2 class="text-base font-semibold text-warn-800">Belum Bisa Disetor</h2>
+                            <p class="mt-0.5 text-sm text-warn-800/80">
+                                Pinjaman baru bisa dibayar setelah berjalan
+                                {{ \App\Models\Pinjaman::BULAN_PER_TERMIN }} bulan, karena bunganya
+                                memang diakumulasi per termin.
+                            </p>
+                        </div>
+                    </div>
+
+                    <table class="w-full text-sm">
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach ($belumJatuhTermin as $pinjaman)
+                                <tr>
+                                    <td class="whitespace-nowrap px-5 py-4">
+                                        <span class="font-semibold text-slate-900">{{ $pinjaman->kode }}</span>
+                                        <span class="block text-xs text-slate-500">
+                                            Cair {{ tanggal_id($pinjaman->tanggal_transaksi) }}
+                                        </span>
+                                    </td>
+                                    <td class="max-w-xs px-5 py-4 text-slate-600">{{ $pinjaman->deskripsi ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-slate-900">
+                                        {{ rupiah($pinjaman->sisa_pokok) }}
+                                    </td>
+                                    <td class="whitespace-nowrap px-5 py-4 text-right text-sm text-slate-500">
+                                        Bisa disetor mulai
+                                        <span class="block font-semibold text-slate-700">
+                                            {{ tanggal_id($pinjaman->jatuhTempoPertama(), 'd F Y') }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
         </div>
 
         <div class="grid gap-6 lg:grid-cols-5">
@@ -151,11 +199,15 @@
                         <input id="jumlah" name="jumlah" type="number" min="1" step="0.01" required
                                x-model.number="jumlah" placeholder="Masukkan Total Bayar" class="input-field pl-11">
                     </div>
-                    <div class="mt-2 flex flex-wrap gap-3 text-sm font-semibold">
-                        <button type="button" x-on:click="jumlah = totalBunga"
-                                class="text-brand-700 hover:underline">Bayar bunga saja</button>
-                        <button type="button" x-on:click="jumlah = totalPelunasan"
-                                class="text-brand-700 hover:underline">Lunasi semua</button>
+                    <div class="mt-2.5 flex flex-wrap gap-2">
+                        <button type="button" x-on:click="jumlah = totalBunga" class="chip">
+                            <x-icon name="persen" class="h-3.5 w-3.5" />
+                            Bayar bunga saja
+                        </button>
+                        <button type="button" x-on:click="jumlah = totalPelunasan" class="chip">
+                            <x-icon name="centang" class="h-3.5 w-3.5" />
+                            Lunasi semua
+                        </button>
                     </div>
                     <x-input-error :messages="$errors->get('jumlah')" class="mt-2" />
                 </div>

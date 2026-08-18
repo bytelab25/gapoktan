@@ -26,7 +26,7 @@
             </h2>
 
             <form method="GET" class="flex flex-wrap items-center gap-3">
-                <select name="kelompok" onchange="this.form.submit()" class="input-field py-2 text-sm">
+                <select name="kelompok" onchange="this.form.submit()" class="input-field w-48 py-2 text-sm">
                     <option value="">Semua Kelompok</option>
                     @foreach ($daftarKelompok as $kelompok)
                         <option value="{{ $kelompok->id }}" @selected(request('kelompok') == $kelompok->id)>
@@ -35,7 +35,7 @@
                     @endforeach
                 </select>
 
-                <select name="jenis" onchange="this.form.submit()" class="input-field py-2 text-sm">
+                <select name="jenis" onchange="this.form.submit()" class="input-field w-44 py-2 text-sm">
                     <option value="">Semua Transaksi</option>
                     <option value="masuk" @selected(request('jenis') === 'masuk')>Dana Masuk</option>
                     <option value="keluar" @selected(request('jenis') === 'keluar')>Dana Keluar</option>
@@ -59,7 +59,7 @@
                         <tr class="cursor-pointer hover:bg-slate-50/60"
                             onclick="window.location='{{ route('talangan.show', $transaksi) }}'">
                             <td class="whitespace-nowrap px-6 py-4 font-medium text-slate-700">{{ $transaksi->kode }}</td>
-                            <td class="px-6 py-4 text-slate-600">{{ $transaksi->kelompokTani->nama_kelompok }}</td>
+                            <td class="px-6 py-4 text-slate-600">{{ $transaksi->kelompokTani?->nama_kelompok ?? "Tanpa kelompok" }}</td>
                             <td class="px-6 py-4 text-slate-600">
                                 @if ($transaksi->otomatis)
                                     <span class="badge bg-brand-50 text-brand-700">Otomatis · {{ $transaksi->pinjaman->kode }}</span>

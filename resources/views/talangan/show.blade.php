@@ -13,7 +13,7 @@
     <div class="card max-w-3xl p-6">
         <dl class="divide-y divide-slate-100">
             @foreach ([
-                'Kelompok Tani' => $transaksi->kelompokTani->nama_kelompok,
+                'Kelompok Tani' => $transaksi->kelompokTani?->nama_kelompok ?? 'Tanpa kelompok tani',
                 'Tanggal' => tanggal_id($transaksi->tanggal, 'd F Y'),
                 'Jenis Transaksi' => 'Dana '.ucfirst($transaksi->jenis),
                 'Penerima' => $transaksi->penerima ?: '-',

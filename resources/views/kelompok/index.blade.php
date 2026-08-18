@@ -38,12 +38,13 @@
                         <th class="px-6 py-3.5 text-left">Kelompok Tani</th>
                         <th class="px-6 py-3.5 text-left">Ketua</th>
                         <th class="px-6 py-3.5 text-right">Total Pinjaman</th>
-                        <th class="px-6 py-3.5 text-right">Aksi</th>
+                        <th class="px-6 py-3.5 text-left">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($daftarKelompok as $kelompok)
-                        <tr class="hover:bg-slate-50/60">
+                        <tr class="cursor-pointer hover:bg-slate-50/60"
+                            onclick="window.location='{{ route('kelompok.show', $kelompok) }}'">
                             <td class="px-6 py-4 font-medium text-brand-700">{{ $kelompok->kode }}</td>
                             <td class="px-6 py-4">
                                 <p class="font-semibold text-slate-900">{{ $kelompok->nama_kelompok }}</p>
@@ -53,9 +54,8 @@
                             <td class="px-6 py-4 text-right font-semibold text-slate-900">
                                 {{ rupiah($kelompok->total_pinjaman) }}
                             </td>
-                            <td class="px-6 py-4 text-right">
-                                <a href="{{ route('kelompok.show', $kelompok) }}"
-                                   class="font-semibold text-brand-700 hover:underline">Lihat</a>
+                            <td class="px-6 py-4">
+                                <x-status-badge :status="$kelompok->status_pinjaman" />
                             </td>
                         </tr>
                     @empty

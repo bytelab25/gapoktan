@@ -4,7 +4,7 @@
 
     <dl class="mt-6 divide-y divide-slate-100">
         @foreach ([
-            'Kelompok Tani' => $transaksi->kelompokTani->nama_kelompok,
+            'Kelompok Tani' => $transaksi->kelompokTani?->nama_kelompok ?? 'Tanpa kelompok tani',
             'Tanggal' => tanggal_id($transaksi->tanggal, 'd F Y'),
             'Jenis Transaksi' => 'Dana '.ucfirst($transaksi->jenis),
             'Penerima' => $transaksi->penerima ?: '-',
@@ -22,7 +22,7 @@
         <div class="text-center">
             <p class="text-sm text-slate-500">Penerima</p>
             <div class="mt-16 w-52 border-t border-slate-300 pt-2">
-                <p class="text-sm font-semibold text-slate-900">{{ $transaksi->penerima ?: $transaksi->kelompokTani->nama_ketua }}</p>
+                <p class="text-sm font-semibold text-slate-900">{{ $transaksi->penerima ?: ($transaksi->kelompokTani?->nama_ketua ?? '-') }}</p>
             </div>
         </div>
 
