@@ -134,7 +134,13 @@ class DanaTalanganController extends Controller
     private function validasi(Request $request): array
     {
         return $request->validate([
-            'kelompok_tani_id' => ['required', Rule::exists('kelompok_tani', 'id')],
+            // Dana masuk boleh tanpa kelompok (mis. hibah atau setoran kolektif),
+            // tapi klaim keluar harus jelas kelompok penerimanya.
+            'kelompok_tani_id' => [
+                'nullable',
+                'required_if:jenis,'.DanaTalangan::JENIS_KELUAR,
+                Rule::exists('kelompok_tani', 'id'),
+            ],
             'tanggal' => ['required', 'date'],
             'jenis' => ['required', Rule::in([DanaTalangan::JENIS_MASUK, DanaTalangan::JENIS_KELUAR])],
             // Penerima hanya relevan untuk klaim santunan (dana keluar).
@@ -142,6 +148,7 @@ class DanaTalanganController extends Controller
             'jumlah' => ['required', 'numeric', 'min:1'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
         ], messages: [
+            'kelompok_tani_id.required_if' => 'Kelompok tani wajib dipilih untuk dana keluar.',
             'penerima.required_if' => 'Nama penerima wajib diisi untuk dana keluar.',
         ], attributes: [
             'kelompok_tani_id' => 'kelompok tani',

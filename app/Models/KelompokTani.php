@@ -53,4 +53,35 @@ class KelompokTani extends Model
             ->where('status', '!=', Pinjaman::STATUS_LUNAS)
             ->sum(fn (Pinjaman $pinjaman) => $pinjaman->sisa_pokok);
     }
+
+    /**
+     * Status kelompok terhadap kewajibannya. Berbeda arti dengan status pada
+     * satu pinjaman: di sini "menunggak" berarti kelompok sudah menyetor
+     * sebagian (bunga atau pokok) tapi belum melunasi semuanya.
+     *
+     * - lunas       : tidak ada pinjaman aktif tersisa
+     * - belum bayar : punya pinjaman aktif dan belum pernah menyetor sepeser pun
+     * - menunggak   : punya pinjaman aktif dan sudah menyetor sebagian
+     */
+    public function getStatusPinjamanAttribute(): string
+    {
+        $aktif = $this->pinjaman->where('status', '!=', Pinjaman::STATUS_LUNAS);
+
+        if ($aktif->isEmpty()) {
+            return Pinjaman::STATUS_LUNAS;
+        }
+
+        $sudahMenyetor = $aktif->contains(fn (Pinjaman $pinjaman) => $pinjaman->pembayaran->isNotEmpty());
+
+        return $sudahMenyetor ? Pinjaman::STATUS_MENUNGGAK : Pinjaman::STATUS_BELUM_BAYAR;
+    }
+
+    /**
+     * Kelompok yang belum pernah menyetor untuk pinjaman berjalannya tidak
+     * boleh menambah pinjaman baru.
+     */
+    public function bisaMengajukanPinjaman(): bool
+    {
+        return $this->status_pinjaman !== Pinjaman::STATUS_BELUM_BAYAR;
+    }
 }

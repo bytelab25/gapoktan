@@ -29,27 +29,52 @@ class SetoranPinjaman
     public function __construct(private readonly KelompokTani $kelompok) {}
 
     /**
-     * Pinjaman yang masih harus dibayar, urut tertua dulu.
+     * Pinjaman yang sudah boleh ditagih, urut tertua dulu.
+     *
+     * Pinjaman baru tidak bisa dibayar sebelum termin pertama genap 4 bulan —
+     * bunganya memang baru diakumulasi pada akhir termin.
      *
      * @return Collection<int, Pinjaman>
      */
-    public function tagihan(): Collection
+    public function tagihan(?Carbon $sampai = null): Collection
     {
+        $sampai ??= Carbon::today();
+
         return $this->kelompok
             ->pinjaman()
             ->with('pembayaran')
             ->belumLunas()
-            ->get();
+            ->get()
+            ->filter(fn (Pinjaman $pinjaman) => $pinjaman->bisaDibayar($sampai))
+            ->values();
     }
 
-    public function totalSisaPokok(): float
+    /**
+     * Pinjaman aktif yang belum genap 4 bulan, jadi belum boleh disetor.
+     *
+     * @return Collection<int, Pinjaman>
+     */
+    public function belumJatuhTermin(?Carbon $sampai = null): Collection
     {
-        return round($this->tagihan()->sum(fn (Pinjaman $pinjaman) => $pinjaman->sisa_pokok), 2);
+        $sampai ??= Carbon::today();
+
+        return $this->kelompok
+            ->pinjaman()
+            ->with('pembayaran')
+            ->belumLunas()
+            ->get()
+            ->reject(fn (Pinjaman $pinjaman) => $pinjaman->bisaDibayar($sampai))
+            ->values();
+    }
+
+    public function totalSisaPokok(?Carbon $sampai = null): float
+    {
+        return round($this->tagihan($sampai)->sum(fn (Pinjaman $pinjaman) => $pinjaman->sisa_pokok), 2);
     }
 
     public function totalBungaTerhutang(?Carbon $sampai = null): float
     {
-        return round($this->tagihan()->sum(fn (Pinjaman $pinjaman) => $pinjaman->bungaTerhutang($sampai)), 2);
+        return round($this->tagihan($sampai)->sum(fn (Pinjaman $pinjaman) => $pinjaman->bungaTerhutang($sampai)), 2);
     }
 
     /**
@@ -57,7 +82,7 @@ class SetoranPinjaman
      */
     public function totalPelunasan(?Carbon $sampai = null): float
     {
-        return round($this->totalSisaPokok() + $this->totalBungaTerhutang($sampai), 2);
+        return round($this->totalSisaPokok($sampai) + $this->totalBungaTerhutang($sampai), 2);
     }
 
     /**
@@ -72,7 +97,7 @@ class SetoranPinjaman
             $sisaUang = round($jumlah, 2);
             $baris = new Collection;
 
-            foreach ($this->tagihan() as $pinjaman) {
+            foreach ($this->tagihan($tanggal) as $pinjaman) {
                 if ($sisaUang < 0.01) {
                     break;
                 }

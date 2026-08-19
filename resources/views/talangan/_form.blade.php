@@ -2,9 +2,15 @@
 
 <div x-data="{ jenis: '{{ old('jenis', $transaksi?->jenis ?? 'masuk') }}' }" class="grid gap-5 md:grid-cols-2">
     <div class="md:col-span-2">
-        <label for="kelompok_tani_id" class="label-field">Kelompok Tani</label>
-        <select id="kelompok_tani_id" name="kelompok_tani_id" required class="input-field">
-            <option value="">Pilih Nama Kelompok Tani</option>
+        <label for="kelompok_tani_id" class="label-field">
+            Kelompok Tani
+            <span x-show="jenis === 'masuk'" x-cloak class="font-normal text-slate-400">(opsional)</span>
+        </label>
+        <select id="kelompok_tani_id" name="kelompok_tani_id" class="input-field"
+                x-bind:required="jenis === 'keluar'">
+            <option value="" x-text="jenis === 'keluar' ? 'Pilih Nama Kelompok Tani' : 'Tanpa kelompok tani'">
+                Pilih Nama Kelompok Tani
+            </option>
             @foreach ($daftarKelompok as $kelompok)
                 <option value="{{ $kelompok->id }}"
                     @selected(old('kelompok_tani_id', $transaksi?->kelompok_tani_id) == $kelompok->id)>
@@ -12,6 +18,9 @@
                 </option>
             @endforeach
         </select>
+        <p x-show="jenis === 'masuk'" x-cloak class="mt-1.5 text-xs text-slate-500">
+            Dana masuk boleh dicatat tanpa kelompok, misalnya hibah atau setoran kolektif.
+        </p>
         <x-input-error :messages="$errors->get('kelompok_tani_id')" class="mt-2" />
     </div>
 

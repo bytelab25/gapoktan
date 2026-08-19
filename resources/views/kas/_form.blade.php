@@ -74,9 +74,9 @@
             </select>
             <x-input-error :messages="$errors->get('kategori_kas_id')" class="mt-2" />
 
-            <button type="button" x-data x-on:click="$dispatch('buka-kategori')"
-                    class="mt-2 text-sm font-semibold text-brand-700 hover:underline">
-                + Tambah Kategori
+            <button type="button" x-data x-on:click="$dispatch('buka-kategori')" class="chip mt-2.5">
+                <x-icon name="plus" class="h-3.5 w-3.5" />
+                Tambah Kategori
             </button>
         </div>
 

@@ -233,3 +233,44 @@ terlihat. Perbaikannya berlapis:
 
 Diverifikasi dengan Chrome yang dipaksa `prefers-color-scheme: dark`: seluruh halaman tetap
 `color-scheme: light` dengan latar `rgb(248, 250, 252)`.
+
+## Revisi Aturan Bisnis (30 Juli 2026)
+
+### Hak akses tiga tingkat
+
+| Role | Lihat menu pengurus | Ubah data | Kelola akun | Pengaturan sistem |
+|---|---|---|---|---|
+| Sekretaris / Bendahara | ya | ya | ya | ya |
+| Ketua Gapoktan | ya | **tidak** | tidak | ya |
+| Pengguna (ketua poktan) | **tidak** | tidak | tidak | tidak |
+
+"Menu pengurus" adalah Pengguna dan Kelompok Tani. Role `user` diasumsikan ketua kelompok
+tani yang membuka dari HP, jadi ia hanya diberi menu yang tampil di beranda: Kas, Pinjaman
+Kelompok, Dana Talangan, dan Laporan Keuangan.
+
+### Status kelompok tani
+
+Kolom Status di daftar kelompok memakai kosakata yang **berbeda arti** dengan status pada
+satu pinjaman. Di level kelompok:
+
+- `lunas` — tidak ada pinjaman aktif tersisa
+- `belum_bayar` — punya pinjaman aktif dan belum pernah menyetor sepeser pun
+- `menunggak` — punya pinjaman aktif dan sudah menyetor sebagian (bunga atau pokok)
+
+Sementara di level satu pinjaman, `menunggak` tetap berarti lewat tanggal jatuh tempo.
+Dua konsep ini sengaja dibiarkan terpisah: yang pertama menilai kepatuhan kelompok, yang
+kedua menandai keterlambatan satu akad.
+
+### Dua kunci baru
+
+1. **Kelompok berstatus `belum_bayar` tidak boleh mengajukan pinjaman baru.** Dicek di
+   `PinjamanController::store`, dan opsinya dikunci di dropdown form.
+2. **Pinjaman tidak bisa disetor sebelum genap 4 bulan.** Bunga memang baru diakumulasi di
+   akhir termin, jadi `SetoranPinjaman::tagihan()` hanya memuat pinjaman yang sudah lewat
+   `jatuhTempoPertama()`. Sisanya ditampilkan terpisah sebagai "Belum Bisa Disetor".
+
+### Dana talangan tanpa kelompok
+
+Kolom `kelompok_tani_id` pada `dana_talangan` jadi nullable. Dana masuk boleh dicatat tanpa
+kelompok (hibah atau setoran kolektif); klaim keluar tetap wajib menyebut kelompok dan
+nama penerimanya.

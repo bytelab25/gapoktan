@@ -26,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('kelola', fn (User $pengguna) => $pengguna->bisaKelola());
         Gate::define('kelola-pengguna', fn (User $pengguna) => $pengguna->bisaKelolaPengguna());
-        Gate::define('lihat-pengguna', fn (User $pengguna) => $pengguna->bisaLihatPengguna());
         Gate::define('kelola-pengaturan', fn (User $pengguna) => $pengguna->bisaKelolaPengaturan());
+        Gate::define('lihat-pengurus', fn (User $pengguna) => $pengguna->bisaLihatMenuPengurus());
     }
 }

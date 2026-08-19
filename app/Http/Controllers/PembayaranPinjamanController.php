@@ -22,8 +22,14 @@ class PembayaranPinjamanController extends Controller
     {
         return view('pinjaman.pilih-kelompok', [
             'daftarKelompok' => KelompokTani::query()
-                ->withCount(['pinjaman as pinjaman_aktif_count' => fn ($query) => $query
-                    ->where('status', '!=', Pinjaman::STATUS_LUNAS)])
+                ->withCount([
+                    'pinjaman as pinjaman_aktif_count' => fn ($query) => $query
+                        ->where('status', '!=', Pinjaman::STATUS_LUNAS),
+                    // Hanya pinjaman yang terminnya sudah genap yang bisa disetor.
+                    'pinjaman as pinjaman_bisa_dibayar_count' => fn ($query) => $query
+                        ->where('status', '!=', Pinjaman::STATUS_LUNAS)
+                        ->whereDate('tanggal_transaksi', '<=', now()->subMonths(Pinjaman::BULAN_PER_TERMIN)),
+                ])
                 ->orderBy('nama_kelompok')
                 ->get(),
         ]);
@@ -32,11 +38,11 @@ class PembayaranPinjamanController extends Controller
     public function create(KelompokTani $kelompok): View
     {
         $layanan = new SetoranPinjaman($kelompok);
-        $tagihan = $layanan->tagihan();
 
         return view('pinjaman.bayar', [
             'kelompok' => $kelompok,
-            'tagihan' => $tagihan,
+            'tagihan' => $layanan->tagihan(),
+            'belumJatuhTermin' => $layanan->belumJatuhTermin(),
             'totalSisaPokok' => $layanan->totalSisaPokok(),
             'totalBunga' => $layanan->totalBungaTerhutang(),
             'totalPelunasan' => $layanan->totalPelunasan(),
@@ -58,7 +64,13 @@ class PembayaranPinjamanController extends Controller
         $maksimal = $layanan->totalPelunasan($tanggal);
 
         if ($maksimal < 0.01) {
-            return back()->with('gagal', 'Kelompok ini tidak punya tagihan yang perlu dibayar.');
+            $tertahan = $layanan->belumJatuhTermin($tanggal);
+
+            return back()->with('gagal', $tertahan->isEmpty()
+                ? 'Kelompok ini tidak punya tagihan yang perlu dibayar.'
+                : 'Pinjaman kelompok ini belum genap '.Pinjaman::BULAN_PER_TERMIN
+                    .' bulan, jadi belum bisa disetor. Paling cepat '
+                    .tanggal_id($tertahan->min(fn ($pinjaman) => $pinjaman->jatuhTempoPertama()), 'd F Y').'.');
         }
 
         if ((float) $data['jumlah'] - $maksimal > 0.01) {

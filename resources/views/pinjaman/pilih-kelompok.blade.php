@@ -27,16 +27,29 @@
                                     <span class="badge bg-warn-50 text-warn-700">
                                         {{ $kelompok->pinjaman_aktif_count }} pinjaman
                                     </span>
+                                    @if ($kelompok->pinjaman_bisa_dibayar_count < $kelompok->pinjaman_aktif_count)
+                                        <span class="mt-1 block text-xs text-slate-500">
+                                            {{ $kelompok->pinjaman_aktif_count - $kelompok->pinjaman_bisa_dibayar_count }}
+                                            belum genap {{ \App\Models\Pinjaman::BULAN_PER_TERMIN }} bulan
+                                        </span>
+                                    @endif
                                 @else
                                     <span class="text-slate-400">—</span>
                                 @endif
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-right">
-                                @if ($kelompok->pinjaman_aktif_count > 0)
-                                    <a href="{{ route('pembayaran.create', $kelompok) }}"
-                                       class="font-semibold text-brand-700 hover:underline">Buat Setoran</a>
+                                @if ($kelompok->pinjaman_bisa_dibayar_count > 0)
+                                    <a href="{{ route('pembayaran.create', $kelompok) }}" class="btn-primary btn-sm">
+                                        <x-icon name="kas" class="h-4 w-4" />
+                                        Buat Setoran
+                                    </a>
+                                @elseif ($kelompok->pinjaman_aktif_count > 0)
+                                    <span class="chip-mati">
+                                        <x-icon name="riwayat" class="h-3.5 w-3.5" />
+                                        Belum jatuh termin
+                                    </span>
                                 @else
-                                    <span class="text-slate-400">Tidak ada tagihan</span>
+                                    <span class="chip-mati">Tidak ada tagihan</span>
                                 @endif
                             </td>
                         </tr>

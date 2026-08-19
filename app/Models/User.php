@@ -55,7 +55,8 @@ class User extends Authenticatable
     }
 
     /**
-     * Administrator penuh — boleh mengelola akun pengguna lain.
+     * Administrator penuh: sekretaris dan bendahara. Hanya mereka yang boleh
+     * mengubah data — ketua sekadar mengawasi, pengguna sekadar melihat.
      */
     public function isAdmin(): bool
     {
@@ -64,15 +65,15 @@ class User extends Authenticatable
 
     /**
      * Boleh menambah, menyunting, dan menghapus data operasional.
-     * Role "user" hanya boleh melihat.
      */
     public function bisaKelola(): bool
     {
-        return $this->role !== self::ROLE_USER;
+        return $this->isAdmin();
     }
 
     /**
-     * Ketua ikut memegang pengaturan suku bunga dan potongan.
+     * Ketua ikut memegang pengaturan suku bunga dan potongan meski tidak
+     * boleh menyentuh data transaksi.
      */
     public function bisaKelolaPengaturan(): bool
     {
@@ -85,10 +86,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Ketua boleh melihat daftar akun, tapi tidak mengubahnya.
+     * Menu pengurus (Pengguna dan Kelompok Tani). Role "user" adalah ketua
+     * kelompok tani yang membuka dari HP, jadi ia hanya diberi menu yang
+     * tampil di beranda: kas, pinjaman, dana talangan, dan laporan.
      */
-    public function bisaLihatPengguna(): bool
+    public function bisaLihatMenuPengurus(): bool
     {
-        return $this->bisaKelola();
+        return $this->role !== self::ROLE_USER;
     }
 }

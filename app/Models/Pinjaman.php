@@ -164,6 +164,22 @@ class Pinjaman extends Model
     }
 
     /**
+     * Kelompok baru boleh menyetor setelah termin pertama genap 4 bulan,
+     * karena bunga memang diakumulasi per termin.
+     */
+    public function bisaDibayar(?Carbon $sampai = null): bool
+    {
+        $sampai ??= Carbon::today();
+
+        return $this->jatuhTempoPertama()->lte($sampai);
+    }
+
+    public function jatuhTempoPertama(): Carbon
+    {
+        return $this->tanggal_transaksi->copy()->addMonths(self::BULAN_PER_TERMIN);
+    }
+
+    /**
      * Batas termin berjalan, mis. termin 2 = bulan ke-8 sejak pencairan.
      */
     public function getBulanTerminAttribute(): int
