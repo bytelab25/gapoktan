@@ -14,7 +14,9 @@ use App\Http\Controllers\PinjamanController;
 use App\Http\Controllers\ProfilController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/beranda');
+Route::get('/', function () {
+    return redirect('/beranda');
+});
 
 Route::middleware('auth')->group(function () {
     /*
