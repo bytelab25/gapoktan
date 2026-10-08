@@ -9,7 +9,6 @@ use App\Models\Pinjaman;
 use App\Services\PencairanPinjaman;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -62,14 +61,10 @@ class PinjamanController extends Controller
         $persenTalangan = (float) $pengaturan->potongan_dana_talangan;
         $persenPotongan = $persenOperasional + $persenTalangan;
         $potongan = round((float) $data['jumlah_pinjaman'] * $persenPotongan / 100, 2);
-        $tanggal = Carbon::parse($data['tanggal_transaksi']);
-
-        $pinjaman = DB::transaction(function () use ($data, $tanggal, $persenPotongan, $persenTalangan, $potongan, $pengaturan, $request) {
+        $pinjaman = DB::transaction(function () use ($data, $persenPotongan, $persenTalangan, $potongan, $pengaturan, $request) {
             $pinjaman = Pinjaman::create([
                 ...$data,
                 'kode' => $this->kodeBerikutnya(),
-                // Pinjaman kelompok selalu berjalan per termin 4 bulan.
-                'tanggal_jatuh_tempo' => $tanggal->copy()->addMonths(Pinjaman::BULAN_PER_TERMIN),
                 'termin' => 1,
                 'potongan_persen' => $persenPotongan,
                 'potongan_talangan_persen' => $persenTalangan,
@@ -135,13 +130,9 @@ class PinjamanController extends Controller
         // Persentase tetap memakai snapshot saat pinjaman dibuat supaya nilai
         // yang sudah dibayar kelompok tidak berubah di belakang layar.
         $potongan = round((float) $data['jumlah_pinjaman'] * (float) $pinjaman->potongan_persen / 100, 2);
-        $tanggal = Carbon::parse($data['tanggal_transaksi']);
-
-        DB::transaction(function () use ($pinjaman, $data, $tanggal, $potongan, $request) {
+        DB::transaction(function () use ($pinjaman, $data, $potongan, $request) {
             $pinjaman->update([
                 ...$data,
-                'tanggal_jatuh_tempo' => $tanggal->copy()
-                    ->addMonths(Pinjaman::BULAN_PER_TERMIN * $pinjaman->termin),
                 'potongan_nominal' => $potongan,
                 'jumlah_diterima' => (float) $data['jumlah_pinjaman'] - $potongan,
             ]);
@@ -206,11 +197,13 @@ class PinjamanController extends Controller
         return $request->validate([
             'kelompok_tani_id' => ['required', Rule::exists('kelompok_tani', 'id')],
             'tanggal_transaksi' => ['required', 'date'],
-            'jumlah_pinjaman' => ['required', 'numeric', 'min:1'],
+            'tanggal_jatuh_tempo' => ['required', 'date', 'after_or_equal:tanggal_transaksi'],
+            'jumlah_pinjaman' => ['required', 'numeric', 'decimal:0,2', 'min:1'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
         ], attributes: [
             'kelompok_tani_id' => 'kelompok tani',
             'tanggal_transaksi' => 'tanggal transaksi',
+            'tanggal_jatuh_tempo' => 'tanggal jatuh tempo',
             'jumlah_pinjaman' => 'jumlah pinjaman',
         ]);
     }

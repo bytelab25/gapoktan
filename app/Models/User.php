@@ -17,8 +17,11 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     public const ROLE_SEKRETARIS = 'sekretaris';
+
     public const ROLE_BENDAHARA = 'bendahara';
+
     public const ROLE_KETUA = 'ketua';
+
     public const ROLE_USER = 'user';
 
     public const LABEL_ROLE = [
@@ -29,7 +32,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Sekretaris dan bendahara punya wewenang identik: administrator penuh.
+     * Sekretaris dan bendahara mengelola data operasional dan akun.
      */
     public const ROLE_ADMIN = [self::ROLE_SEKRETARIS, self::ROLE_BENDAHARA];
 
@@ -55,8 +58,8 @@ class User extends Authenticatable
     }
 
     /**
-     * Administrator penuh: sekretaris dan bendahara. Hanya mereka yang boleh
-     * mengubah data — ketua sekadar mengawasi, pengguna sekadar melihat.
+     * Sekretaris dan bendahara mengubah data operasional; ketua mengawasi
+     * transaksi dan memegang pengaturan sistem.
      */
     public function isAdmin(): bool
     {
@@ -72,12 +75,16 @@ class User extends Authenticatable
     }
 
     /**
-     * Ketua ikut memegang pengaturan suku bunga dan potongan meski tidak
-     * boleh menyentuh data transaksi.
+     * Pengurus dapat melihat pengaturan suku bunga dan potongan.
      */
-    public function bisaKelolaPengaturan(): bool
+    public function bisaLihatPengaturan(): bool
     {
         return $this->isAdmin() || $this->role === self::ROLE_KETUA;
+    }
+
+    public function bisaKelolaPengaturan(): bool
+    {
+        return $this->role === self::ROLE_KETUA;
     }
 
     public function bisaKelolaPengguna(): bool

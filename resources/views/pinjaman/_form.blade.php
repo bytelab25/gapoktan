@@ -2,24 +2,22 @@
     $pinjaman ??= null;
     // Pinjaman lama memakai persentase yang tersimpan, pinjaman baru memakai yang berlaku sekarang.
     $persen = $pinjaman ? (float) $pinjaman->potongan_persen : $persenPotongan;
+    $tanggalDefault = optional($pinjaman?->tanggal_transaksi)->format('Y-m-d') ?? now()->format('Y-m-d');
+    $tanggal = old('tanggal_transaksi', $tanggalDefault);
+    $jatuhTempo = old('tanggal_jatuh_tempo', optional($pinjaman?->tanggal_jatuh_tempo)->format('Y-m-d')
+        ?? \Illuminate\Support\Carbon::parse($tanggalDefault)->addMonths(\App\Models\Pinjaman::BULAN_PER_TERMIN)->format('Y-m-d'));
 @endphp
 
 <div x-data="{
         jumlah: {{ (float) old('jumlah_pinjaman', $pinjaman?->jumlah_pinjaman ?? 0) }},
         persen: {{ $persen }},
-        tanggal: '{{ old('tanggal_transaksi', optional($pinjaman?->tanggal_transaksi)->format('Y-m-d') ?? now()->format('Y-m-d')) }}',
+        tanggal: @js($tanggal),
+        jatuhTempo: @js($jatuhTempo),
+        tempoDiubah: @js($pinjaman !== null || old('tanggal_jatuh_tempo') !== null),
         terminBulan: {{ \App\Models\Pinjaman::BULAN_PER_TERMIN * ($pinjaman?->termin ?? 1) }},
         get potongan() { return Math.round(this.jumlah * this.persen) / 100 },
         get diterima() { return this.jumlah - this.potongan },
-        /* Jatuh tempo selalu mengikuti kelipatan 4 bulan dari tanggal pencairan. */
-        get jatuhTempo() {
-            if (! this.tanggal) return '';
-            const mulai = new Date(this.tanggal + 'T00:00:00');
-            const tempo = new Date(mulai);
-            tempo.setMonth(tempo.getMonth() + this.terminBulan);
-            return tempo.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-        },
-        rupiah(nilai) { return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(nilai || 0)) },
+        rupiah(nilai) { return 'Rp ' + formatNominal(nilai) },
      }">
 
     <h2 class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand-700">
@@ -61,44 +59,33 @@
         <div>
             <label for="tanggal_transaksi" class="label-field">Tanggal Transaksi</label>
             <input id="tanggal_transaksi" name="tanggal_transaksi" type="date" required
-                   x-model="tanggal" class="input-field">
+                   x-model="tanggal" x-on:change="if (!tempoDiubah) jatuhTempo = tambahBulan(tanggal, terminBulan)" class="input-field">
             <x-input-error :messages="$errors->get('tanggal_transaksi')" class="mt-2" />
         </div>
 
         <div>
-            <label class="label-field">Tanggal Jatuh Tempo</label>
-            <div class="relative">
-                <input type="text" readonly x-bind:value="jatuhTempo"
-                       class="input-field cursor-not-allowed bg-slate-100 pr-11 text-slate-500">
-                <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400">
-                    <x-icon name="kalender" class="h-4 w-4" />
-                </span>
-            </div>
+            <label for="tanggal_jatuh_tempo" class="label-field">Tanggal Jatuh Tempo</label>
+            <input id="tanggal_jatuh_tempo" name="tanggal_jatuh_tempo" type="date" required
+                   x-model="jatuhTempo" x-bind:min="tanggal" x-on:input="tempoDiubah = true" class="input-field">
             <p class="mt-1.5 text-xs italic text-slate-500">
-                Pinjaman kelompok berjalan per termin {{ \App\Models\Pinjaman::BULAN_PER_TERMIN }} bulan,
-                jadi jatuh tempo dihitung otomatis
-                @if ($pinjaman) (termin berjalan: {{ $pinjaman->termin }}) @endif.
+                Tanggal awal disarankan {{ \App\Models\Pinjaman::BULAN_PER_TERMIN }} bulan setelah pencairan dan dapat disesuaikan.
+                @if ($pinjaman) Termin berjalan: {{ $pinjaman->termin }}. @endif
             </p>
+            <x-input-error :messages="$errors->get('tanggal_jatuh_tempo')" class="mt-2" />
         </div>
 
         <div>
             <label for="jumlah_pinjaman" class="label-field">Jumlah Pinjaman (Rp)</label>
-            <div class="relative">
-                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-semibold text-slate-400">Rp</span>
-                <input id="jumlah_pinjaman" name="jumlah_pinjaman" type="number" min="1" step="0.01" required
-                       x-model.number="jumlah" placeholder="0" class="input-field pl-11">
-            </div>
+            <x-input-nominal name="jumlah_pinjaman" :value="old('jumlah_pinjaman', $pinjaman?->jumlah_pinjaman ?? 0)" />
             <x-input-error :messages="$errors->get('jumlah_pinjaman')" class="mt-2" />
         </div>
 
         <div>
-            <label class="label-field">Potongan {{ $persen }}%</label>
+            <label for="potongan_nominal" class="label-field">Potongan {{ $persen }}%</label>
             <div class="relative">
-                <input type="text" value="{{ $persen }}%" readonly
-                       class="input-field cursor-not-allowed bg-slate-100 pr-11 text-slate-500">
-                <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400">
-                    <x-icon name="pengaturan" class="h-4 w-4" />
-                </span>
+                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-semibold text-slate-400">Rp</span>
+                <input id="potongan_nominal" type="text" x-bind:value="formatNominal(potongan)" readonly
+                       class="input-field bg-slate-100 pl-11 text-slate-600">
             </div>
             <p class="mt-1.5 text-xs italic text-slate-500">
                 Gabungan biaya operasional {{ (float) $pengaturan->potongan_operasional }}%
@@ -108,10 +95,10 @@
         </div>
 
         <div>
-            <label class="label-field">Jumlah Diterima</label>
+            <label for="jumlah_diterima" class="label-field">Jumlah Diterima</label>
             <div class="relative">
                 <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-semibold text-slate-400">Rp</span>
-                <input type="text" readonly x-bind:value="new Intl.NumberFormat('id-ID').format(Math.round(diterima))"
+                <input id="jumlah_diterima" type="text" readonly x-bind:value="formatNominal(diterima)"
                        class="input-field cursor-not-allowed bg-slate-100 pl-11 font-semibold text-slate-700">
             </div>
             <p class="mt-1.5 text-xs text-slate-500">
@@ -129,8 +116,8 @@
 
     <div class="mt-6 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
         Bunga <span class="font-semibold text-slate-900">{{ $pinjaman ? (float) $pinjaman->bunga_persen : (float) $pengaturan->suku_bunga_pinjaman }}% per bulan</span>
-        dihitung dari sisa pokok yang belum lunas dan diakumulasi per
-        {{ \App\Models\Pinjaman::BULAN_PER_TERMIN }} bulan. Saat menyetor, bunga dilunasi lebih dulu
+        dihitung dari sisa pokok yang belum lunas. Setoran dapat dicatat sejak pencairan.
+        Saat menyetor, bunga dilunasi lebih dulu
         sebelum pokok terpotong.
     </div>
 </div>

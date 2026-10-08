@@ -1,5 +1,5 @@
 @php
-    // Riwayat singkat untuk dropdown ikon jam, sesuai modal "History" di desain.
+    // Riwayat singkat untuk dropdown History.
     $riwayatTerkini = \App\Models\LogAktivitas::with('user')->latest()->limit(3)->get();
 @endphp
 
@@ -32,7 +32,7 @@
             <button type="button" x-on:click="buka = ! buka"
                     class="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                     aria-label="Riwayat aktivitas">
-                <x-icon name="riwayat" class="h-5 w-5" />
+                <x-icon name="riwayat-dokumen" class="h-5 w-5" />
             </button>
             <div x-show="buka" x-cloak x-transition.origin.top.right
                  class="absolute right-0 mt-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop">
@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        @can('kelola-pengaturan')
+        @can('lihat-pengaturan')
             <a href="{{ route('pengaturan.edit') }}"
                class="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                aria-label="Pengaturan sistem">
@@ -77,7 +77,7 @@
             <div x-show="buka" x-cloak x-transition.origin.top.right
                  class="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-pop">
                 <a href="{{ route('profil.show') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Data Diri</a>
-                @can('kelola-pengaturan')
+                @can('lihat-pengaturan')
                     <a href="{{ route('pengaturan.edit') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Pengaturan Sistem</a>
                 @endcan
                 <form method="POST" action="{{ route('logout') }}" class="border-t border-slate-100">

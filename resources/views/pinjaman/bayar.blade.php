@@ -86,9 +86,9 @@
                                 </tr>
                             @empty
                                 <x-empty-state kolom="5"
-                                               :pesan="$belumJatuhTermin->isEmpty()
+                                               :pesan="$belumDicairkan->isEmpty()
                                                    ? 'Kelompok ini tidak punya tagihan pinjaman.'
-                                                   : 'Belum ada pinjaman yang jatuh termin. Lihat daftar di bawah.'" />
+                                                   : 'Pinjaman belum dicairkan. Lihat tanggal pencairan di bawah.'" />
                             @endforelse
                         </tbody>
                         @if ($tagihan->isNotEmpty())
@@ -108,24 +108,22 @@
                 </div>
             </div>
 
-            {{-- Pinjaman yang belum genap satu termin belum boleh disetor. --}}
-            @if ($belumJatuhTermin->isNotEmpty())
+            {{-- Setoran tidak dapat mendahului tanggal pencairan. --}}
+            @if ($belumDicairkan->isNotEmpty())
                 <div class="card mt-6 overflow-hidden">
                     <div class="flex items-start gap-3 border-b border-slate-200 bg-warn-50 p-5">
                         <x-icon name="peringatan" class="mt-0.5 h-5 w-5 shrink-0 text-warn-700" />
                         <div>
-                            <h2 class="text-base font-semibold text-warn-800">Belum Bisa Disetor</h2>
+                            <h2 class="text-base font-semibold text-warn-800">Belum Dicairkan</h2>
                             <p class="mt-0.5 text-sm text-warn-800/80">
-                                Pinjaman baru bisa dibayar setelah berjalan
-                                {{ \App\Models\Pinjaman::BULAN_PER_TERMIN }} bulan, karena bunganya
-                                memang diakumulasi per termin.
+                                Setoran dapat dicatat mulai tanggal pencairan pinjaman.
                             </p>
                         </div>
                     </div>
 
                     <table class="w-full text-sm">
                         <tbody class="divide-y divide-slate-100">
-                            @foreach ($belumJatuhTermin as $pinjaman)
+                            @foreach ($belumDicairkan as $pinjaman)
                                 <tr>
                                     <td class="whitespace-nowrap px-5 py-4">
                                         <span class="font-semibold text-slate-900">{{ $pinjaman->kode }}</span>
@@ -140,7 +138,7 @@
                                     <td class="whitespace-nowrap px-5 py-4 text-right text-sm text-slate-500">
                                         Bisa disetor mulai
                                         <span class="block font-semibold text-slate-700">
-                                            {{ tanggal_id($pinjaman->jatuhTempoPertama(), 'd F Y') }}
+                                            {{ tanggal_id($pinjaman->tanggal_transaksi, 'd F Y') }}
                                         </span>
                                     </td>
                                 </tr>

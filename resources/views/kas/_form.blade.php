@@ -1,16 +1,13 @@
 @php
     $transaksi ??= null;
-    $persenBiaya = (float) $pengaturan->potongan_operasional;
 @endphp
 
 <div x-data="{
         jenis: '{{ old('jenis', $transaksi?->jenis ?? 'masuk') }}',
         jumlah: {{ (float) old('jumlah', $transaksi?->jumlah ?? 0) }},
-        persenBiaya: {{ $persenBiaya }},
-        get biaya() { return Math.round(this.jumlah * this.persenBiaya) / 100 },
         get dampak() { return this.jenis === 'masuk' ? this.jumlah : -this.jumlah },
         rupiah(nilai) {
-            const angka = new Intl.NumberFormat('id-ID').format(Math.abs(Math.round(nilai)));
+            const angka = formatNominal(Math.abs(nilai));
             return (nilai < 0 ? '-Rp ' : 'Rp ') + angka;
         },
      }">
@@ -26,11 +23,7 @@
 
         <div>
             <label for="jumlah" class="label-field">Jumlah (IDR)</label>
-            <div class="relative">
-                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-semibold text-slate-400">Rp</span>
-                <input id="jumlah" name="jumlah" type="number" min="1" step="0.01" required
-                       x-model.number="jumlah" placeholder="50.000.000" class="input-field pl-11">
-            </div>
+            <x-input-nominal name="jumlah" :value="old('jumlah', $transaksi?->jumlah ?? 0)" />
             <x-input-error :messages="$errors->get('jumlah')" class="mt-2" />
         </div>
 
@@ -98,11 +91,7 @@
     </div>
 
     {{-- Ringkasan yang ikut berubah saat nilai form diubah. --}}
-    <div class="mt-8 grid gap-4 border-t border-slate-200 pt-6 sm:grid-cols-2 lg:max-w-2xl">
-        <div class="rounded-lg bg-slate-50 p-4">
-            <p class="text-xs text-slate-500">Biaya yang Dihitung ({{ $persenBiaya }}%)</p>
-            <p class="mt-1 text-xl font-bold text-brand-600" x-text="rupiah(biaya)">Rp 0</p>
-        </div>
+    <div class="mt-8 border-t border-slate-200 pt-6 lg:max-w-md">
         <div class="rounded-lg bg-slate-50 p-4">
             <p class="text-xs text-slate-500">Dampak Pada Saldo</p>
             <p class="mt-1 text-xl font-bold" x-text="rupiah(dampak)"

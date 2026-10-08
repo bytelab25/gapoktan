@@ -21,8 +21,8 @@ use Illuminate\Support\Facades\DB;
  *    dan kekurangannya jadi tunggakan bunga.
  * 2. Bila kelompok punya lebih dari satu pinjaman, uang masuk ke pinjaman
  *    tertua lebih dulu (FIFO). Sisanya baru mengalir ke pinjaman berikutnya.
- * 3. Pinjaman berjalan per termin 4 bulan. Melunasi bunga tanpa memotong pokok
- *    menggeser jatuh tempo ke termin berikutnya (4 -> 8 -> 12 bulan).
+ * 3. Setoran boleh dilakukan sejak pencairan. Bila bunga sudah lunas dan jatuh
+ *    tempo terlewati, jatuh tempo maju 4 bulan selama pokok belum lunas.
  */
 class SetoranPinjaman
 {
@@ -30,9 +30,6 @@ class SetoranPinjaman
 
     /**
      * Pinjaman yang sudah boleh ditagih, urut tertua dulu.
-     *
-     * Pinjaman baru tidak bisa dibayar sebelum termin pertama genap 4 bulan —
-     * bunganya memang baru diakumulasi pada akhir termin.
      *
      * @return Collection<int, Pinjaman>
      */
@@ -50,11 +47,11 @@ class SetoranPinjaman
     }
 
     /**
-     * Pinjaman aktif yang belum genap 4 bulan, jadi belum boleh disetor.
+     * Pinjaman dengan tanggal pencairan setelah tanggal setoran.
      *
      * @return Collection<int, Pinjaman>
      */
-    public function belumJatuhTermin(?Carbon $sampai = null): Collection
+    public function belumDicairkan(?Carbon $sampai = null): Collection
     {
         $sampai ??= Carbon::today();
 

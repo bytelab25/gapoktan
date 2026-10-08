@@ -34,8 +34,8 @@
             @endforeach
         </select>
         <p class="mt-1.5 text-xs text-slate-500">
-            Sekretaris dan bendahara punya wewenang sama: akses penuh termasuk mengelola akun.
-            Ketua mengelola data operasional dan pengaturan suku bunga. Pengguna hanya bisa melihat.
+            Sekretaris dan bendahara mengelola data operasional serta akun, dan hanya melihat pengaturan.
+            Ketua melihat data operasional dan menyunting pengaturan sistem. Pengguna hanya bisa melihat.
         </p>
         <x-input-error :messages="$errors->get('role')" class="mt-2" />
     </div>

@@ -21,7 +21,7 @@ Route::middleware('auth')->group(function () {
      * Rute tulis didaftarkan lebih dulu supaya "kas/create" dan kawan-kawan
      * tidak tertangkap pola "kas/{kas}" milik rute lihat.
      *
-     * Sekretaris, bendahara, dan ketua boleh mengubah data operasional.
+     * Sekretaris dan bendahara boleh mengubah data operasional.
      * Role "user" tidak punya satu pun rute tulis.
      */
     Route::middleware('can:kelola')->group(function () {
@@ -38,12 +38,12 @@ Route::middleware('auth')->group(function () {
     });
 
     /*
-     * Suku bunga dan potongan dipegang ketua serta administrator.
+     * Pengurus boleh melihat pengaturan; hanya ketua boleh menyunting.
      */
-    Route::middleware('can:kelola-pengaturan')->group(function () {
-        Route::get('pengaturan', [PengaturanController::class, 'edit'])->name('pengaturan.edit');
-        Route::put('pengaturan', [PengaturanController::class, 'update'])->name('pengaturan.update');
-    });
+    Route::get('pengaturan', [PengaturanController::class, 'edit'])
+        ->middleware('can:lihat-pengaturan')->name('pengaturan.edit');
+    Route::put('pengaturan', [PengaturanController::class, 'update'])
+        ->middleware('can:kelola-pengaturan')->name('pengaturan.update');
 
     /*
      * Hanya sekretaris dan bendahara yang boleh mengelola akun.

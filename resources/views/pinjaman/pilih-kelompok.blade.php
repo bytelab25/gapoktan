@@ -30,7 +30,7 @@
                                     @if ($kelompok->pinjaman_bisa_dibayar_count < $kelompok->pinjaman_aktif_count)
                                         <span class="mt-1 block text-xs text-slate-500">
                                             {{ $kelompok->pinjaman_aktif_count - $kelompok->pinjaman_bisa_dibayar_count }}
-                                            belum genap {{ \App\Models\Pinjaman::BULAN_PER_TERMIN }} bulan
+                                            belum dicairkan
                                         </span>
                                     @endif
                                 @else
@@ -46,7 +46,7 @@
                                 @elseif ($kelompok->pinjaman_aktif_count > 0)
                                     <span class="chip-mati">
                                         <x-icon name="riwayat" class="h-3.5 w-3.5" />
-                                        Belum jatuh termin
+                                        Belum dicairkan
                                     </span>
                                 @else
                                     <span class="chip-mati">Tidak ada tagihan</span>

@@ -44,16 +44,6 @@
                         kemakmuran bersama melalui transparansi data dan tata kelola kooperatif yang modern.
                     </p>
 
-                    <dl class="mt-8 flex gap-12">
-                        <div>
-                            <dt class="text-2xl font-bold text-white">{{ $jumlahKelompok }}</dt>
-                            <dd class="text-sm text-white/70">Kelompok Tani</dd>
-                        </div>
-                        <div>
-                            <dt class="text-2xl font-bold text-white">1</dt>
-                            <dd class="text-sm text-white/70">Gabungan Kelompok Tani</dd>
-                        </div>
-                    </dl>
                 </div>
             </div>
         </div>

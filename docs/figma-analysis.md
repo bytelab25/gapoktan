@@ -1,5 +1,16 @@
 # Analisis Desain Figma — Gapoktan Swagotra Arthagiri
 
+> **Status dokumen, 8 Oktober 2026:** catatan ini menyimpan analisis desain dan
+> sejarah keputusan. Panduan implementasi terbaru tersedia di [indeks docs](README.md).
+> Aturan role awal di bawah sudah digantikan revisi tiga tingkat: ketua boleh
+> melihat data dan mengubah pengaturan, sementara penulisan transaksi hanya untuk
+> sekretaris/bendahara. Lihat [rute dan akses](rute-dan-akses.md),
+> [aturan bisnis](aturan-bisnis.md), dan [catatan implementasi](catatan-implementasi.md).
+> Revisi 8 Oktober: pengaturan hanya disunting ketua (sekretaris/bendahara melihat),
+> setoran boleh sejak pencairan tanpa kunci empat bulan, jatuh tempo bisa dipilih,
+> nominal form memakai dua desimal, potongan ditampilkan dalam rupiah, biaya Kas
+> dan jumlah kelompok pada login disembunyikan, serta ikon History menjadi dokumen dengan jam.
+
 Sumber: https://www.figma.com/design/VdEdMiY2lQzmksnLy2c9Pt/Gapoktan
 File berisi 2 set desain duplikat. **Set kiri (x≈6200) yang dipakai.** Set kanan (x≈18311) diabaikan.
 

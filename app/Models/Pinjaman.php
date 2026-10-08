@@ -13,13 +13,14 @@ class Pinjaman extends Model
     use HasFactory;
 
     /**
-     * Pinjaman kelompok selalu diakumulasi per 4 bulan: jatuh tempo bergerak
-     * 4 -> 8 -> 12 bulan selama pokoknya belum lunas.
+     * Jatuh tempo awal dapat ditentukan pengurus; perpanjangan termin 4 bulan.
      */
     public const BULAN_PER_TERMIN = 4;
 
     public const STATUS_BELUM_BAYAR = 'belum_bayar';
+
     public const STATUS_MENUNGGAK = 'menunggak';
+
     public const STATUS_LUNAS = 'lunas';
 
     public const LABEL_STATUS = [
@@ -164,23 +165,17 @@ class Pinjaman extends Model
     }
 
     /**
-     * Kelompok baru boleh menyetor setelah termin pertama genap 4 bulan,
-     * karena bunga memang diakumulasi per termin.
+     * Setoran boleh dicatat sejak pencairan, tanpa menunggu termin pertama.
      */
     public function bisaDibayar(?Carbon $sampai = null): bool
     {
         $sampai ??= Carbon::today();
 
-        return $this->jatuhTempoPertama()->lte($sampai);
-    }
-
-    public function jatuhTempoPertama(): Carbon
-    {
-        return $this->tanggal_transaksi->copy()->addMonths(self::BULAN_PER_TERMIN);
+        return $this->tanggal_transaksi->lte($sampai);
     }
 
     /**
-     * Batas termin berjalan, mis. termin 2 = bulan ke-8 sejak pencairan.
+     * Lama termin standar sejak pencairan, sebelum penyesuaian tanggal manual.
      */
     public function getBulanTerminAttribute(): int
     {
@@ -200,9 +195,8 @@ class Pinjaman extends Model
     {
         while ($this->tanggal_jatuh_tempo->lte($sampai)) {
             $this->termin++;
-            $this->tanggal_jatuh_tempo = $this->tanggal_transaksi
-                ->copy()
-                ->addMonths($this->bulan_termin);
+            $this->tanggal_jatuh_tempo = $this->tanggal_jatuh_tempo
+                ->copy()->addMonths(self::BULAN_PER_TERMIN);
         }
     }
 

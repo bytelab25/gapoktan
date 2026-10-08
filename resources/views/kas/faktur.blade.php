@@ -33,11 +33,7 @@
         </div>
     </dl>
 
-    <div class="mt-6 grid gap-4 border-t border-slate-200 pt-6 sm:grid-cols-2">
-        <div class="rounded-lg bg-slate-50 p-4">
-            <p class="text-xs text-slate-500">Biaya yang Dihitung</p>
-            <p class="mt-1 text-lg font-bold text-brand-600">{{ rupiah($transaksi->biaya) }}</p>
-        </div>
+    <div class="mt-6 border-t border-slate-200 pt-6">
         <div class="rounded-lg bg-slate-50 p-4">
             <p class="text-xs text-slate-500">Saldo Setelah Transaksi</p>
             <p class="mt-1 text-lg font-bold text-slate-900">{{ rupiah($saldoSetelah) }}</p>

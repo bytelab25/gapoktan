@@ -11,12 +11,10 @@
         </x-slot:aksi>
     </x-page-header>
 
-    <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <x-stat-card label="Saldo Saat Ini" :nilai="rupiah($saldo)" ikon="bank" />
         <x-stat-card label="Suku Bunga Pinjaman ({{ (float) $pengaturan->suku_bunga_pinjaman }}%)"
                      :nilai="(float) $pengaturan->suku_bunga_pinjaman . '% / bulan'" ikon="persen" warna="biru" />
-        <x-stat-card label="Biaya Operasional ({{ (float) $pengaturan->potongan_operasional }}%)"
-                     :nilai="rupiah($totalBiaya)" ikon="nota" warna="kuning" />
         <x-stat-card label="Pengeluaran" :nilai="rupiah($totalPengeluaran)" ikon="keluar-uang" warna="merah" />
     </div>
 

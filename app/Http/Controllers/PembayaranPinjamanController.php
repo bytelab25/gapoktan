@@ -25,10 +25,10 @@ class PembayaranPinjamanController extends Controller
                 ->withCount([
                     'pinjaman as pinjaman_aktif_count' => fn ($query) => $query
                         ->where('status', '!=', Pinjaman::STATUS_LUNAS),
-                    // Hanya pinjaman yang terminnya sudah genap yang bisa disetor.
+                    // Setoran tersedia sejak tanggal pencairan.
                     'pinjaman as pinjaman_bisa_dibayar_count' => fn ($query) => $query
                         ->where('status', '!=', Pinjaman::STATUS_LUNAS)
-                        ->whereDate('tanggal_transaksi', '<=', now()->subMonths(Pinjaman::BULAN_PER_TERMIN)),
+                        ->whereDate('tanggal_transaksi', '<=', now()->toDateString()),
                 ])
                 ->orderBy('nama_kelompok')
                 ->get(),
@@ -42,7 +42,7 @@ class PembayaranPinjamanController extends Controller
         return view('pinjaman.bayar', [
             'kelompok' => $kelompok,
             'tagihan' => $layanan->tagihan(),
-            'belumJatuhTermin' => $layanan->belumJatuhTermin(),
+            'belumDicairkan' => $layanan->belumDicairkan(),
             'totalSisaPokok' => $layanan->totalSisaPokok(),
             'totalBunga' => $layanan->totalBungaTerhutang(),
             'totalPelunasan' => $layanan->totalPelunasan(),
@@ -64,13 +64,12 @@ class PembayaranPinjamanController extends Controller
         $maksimal = $layanan->totalPelunasan($tanggal);
 
         if ($maksimal < 0.01) {
-            $tertahan = $layanan->belumJatuhTermin($tanggal);
+            $tertahan = $layanan->belumDicairkan($tanggal);
 
             return back()->with('gagal', $tertahan->isEmpty()
                 ? 'Kelompok ini tidak punya tagihan yang perlu dibayar.'
-                : 'Pinjaman kelompok ini belum genap '.Pinjaman::BULAN_PER_TERMIN
-                    .' bulan, jadi belum bisa disetor. Paling cepat '
-                    .tanggal_id($tertahan->min(fn ($pinjaman) => $pinjaman->jatuhTempoPertama()), 'd F Y').'.');
+                : 'Tanggal setoran mendahului pencairan pinjaman. Paling cepat '
+                    .tanggal_id($tertahan->min('tanggal_transaksi'), 'd F Y').'.');
         }
 
         if ((float) $data['jumlah'] - $maksimal > 0.01) {
@@ -107,5 +106,4 @@ class PembayaranPinjamanController extends Controller
             'daftarBaris' => $pembayaran->satuSetoran(),
         ]);
     }
-
 }

@@ -2,7 +2,14 @@
     <x-page-header judul="Pengaturan Sistem"
                    deskripsi="Persentase yang dipakai koperasi. Perubahan hanya berlaku untuk transaksi berikutnya." />
 
+    @php($bolehSunting = auth()->user()->bisaKelolaPengaturan())
+
+    @unless($bolehSunting)
+        <p class="mb-5 text-sm text-slate-600">Pengaturan hanya dapat disunting oleh Ketua Gapoktan.</p>
+    @endunless
+
     <form method="POST" action="{{ route('pengaturan.update') }}" class="card max-w-3xl p-6"
+          @unless($bolehSunting) onsubmit="return false" @endunless
           x-data="{
               bunga: {{ (float) old('suku_bunga_pinjaman', $pengaturan->suku_bunga_pinjaman) }},
               operasional: {{ (float) old('potongan_operasional', $pengaturan->potongan_operasional) }},
@@ -25,7 +32,7 @@
                     <label for="{{ $item['kunci'] }}" class="label-field">{{ $item['label'] }}</label>
                     <div class="relative max-w-xs">
                         <input id="{{ $item['kunci'] }}" name="{{ $item['kunci'] }}" type="number"
-                               min="0" max="100" step="0.01" required
+                               min="0" max="100" step="0.01" required @readonly(!$bolehSunting)
                                x-model.number="{{ $item['model'] }}" class="input-field pr-10">
                         <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-sm font-semibold text-slate-400">%</span>
                     </div>
@@ -39,13 +46,15 @@
             <p class="text-xs font-semibold uppercase tracking-wide text-brand-800">Total Potongan Muka Pinjaman</p>
             <p class="mt-1 text-2xl font-bold text-brand-700"><span x-text="potonganMuka">0</span>%</p>
             <p class="mt-1 text-xs text-brand-800/80">
-                Gabungan potongan operasional dan dana talangan. Angka ini yang muncul terkunci
+                Gabungan potongan operasional dan dana talangan. Nominalnya dihitung otomatis
                 di formulir pengajuan pinjaman.
             </p>
         </div>
 
-        <div class="mt-8 flex justify-end">
-            <button type="submit" class="btn-primary">Simpan Pengaturan</button>
-        </div>
+        @can('kelola-pengaturan')
+            <div class="mt-8 flex justify-end">
+                <button type="submit" class="btn-primary">Simpan Pengaturan</button>
+            </div>
+        @endcan
     </form>
 </x-app-layout>

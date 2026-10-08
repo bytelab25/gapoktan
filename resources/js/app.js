@@ -1,9 +1,13 @@
 import Alpine from 'alpinejs';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
+import { formatNominal, inputNominal, tambahBulan } from './nominal';
 
 window.Alpine = Alpine;
 window.Swal = Swal;
+window.formatNominal = formatNominal;
+window.tambahBulan = tambahBulan;
+Alpine.data('inputNominal', inputNominal);
 
 Alpine.start();
 

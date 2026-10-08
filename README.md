@@ -1,58 +1,73 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Gapoktan Swagotra Arthagiri
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi web untuk mengelola keuangan Gabungan Kelompok Tani: kas, pinjaman kelompok, setoran pembayaran, dana talangan, laporan keuangan, dan akun pengurus. Antarmuka menggunakan bahasa Indonesia.
 
-## About Laravel
+## Fitur
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Ringkasan saldo kas, saldo dana talangan, dan sisa pokok pinjaman beredar.
+- Data kelompok tani, identitas ketua, dan riwayat pinjamannya.
+- Kas masuk/keluar, kategori dinamis, saldo berjalan, dan faktur cetak.
+- Pinjaman dengan potongan muka, bunga bulanan, jatuh tempo yang dapat dipilih, dan perpanjangan termin empat bulan.
+- Setoran di tingkat kelompok, dibagi ke pinjaman tertua dengan bunga dibayar sebelum pokok.
+- Kontribusi talangan otomatis dari pencairan, dana masuk manual, dan klaim santunan.
+- Laporan kas, pinjaman, dana talangan, dan akhir tahun; unduhan PDF melalui dompdf.
+- Empat role, pengaturan persentase, profil sendiri, dan log aktivitas.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Teknologi dan kebutuhan
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Bagian | Teknologi |
+| --- | --- |
+| Backend | PHP 8.3+, Laravel 13, Eloquent, Blade |
+| Antarmuka | Tailwind CSS 3, Alpine.js 3, SweetAlert2 |
+| Build | Vite 8, npm dan `package-lock.json` |
+| Database | SQLite sebagai default contoh; koneksi lain di `config/database.php` |
+| PDF | `barryvdh/laravel-dompdf` 3 |
+| Pengujian | PHPUnit 12 |
 
-## Learning Laravel
+Gunakan Composer 2 dan Node.js yang memenuhi kebutuhan Vite: `^20.19.0 || >=22.12.0`. PHP harus memiliki driver PDO untuk database yang dipilih; tes bawaan membutuhkan `pdo_sqlite`.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Mulai menggunakan
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Ikuti [panduan instalasi](docs/instalasi.md) untuk menyiapkan `.env`, database, akun, dan aset. Setelah persiapan selesai:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer dev
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Server bawaan tersedia di `http://localhost:8000`; login memakai **username**, bukan email. Seeder demo menyediakan username `admin`, `bendahara`, `ketua`, dan `user`, dengan sandi `password`. Seeder hanya untuk database demo kosong dan tidak dapat dijalankan berulang tanpa konflik data.
 
-## Contributing
+Untuk database operasional, buat administrator sendiri sesuai panduan instalasi. Tidak ada pendaftaran publik atau reset sandi melalui email.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Hak akses
 
-## Code of Conduct
+| Role | Data keuangan dan laporan | Kelola transaksi dan kelompok | Kelola akun | Pengaturan |
+| --- | --- | --- | --- | --- |
+| `sekretaris` | Lihat | Ya | Ya | Lihat |
+| `bendahara` | Lihat | Ya | Ya | Lihat |
+| `ketua` | Lihat | Tidak | Tidak | Lihat dan sunting |
+| `user` | Lihat | Tidak | Tidak | Tidak |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Semua role dapat menyunting profil sendiri. Role `user` tidak dapat membuka modul Pengguna dan Kelompok Tani, tetapi data kas, pinjaman, talangan, laporan, dan log yang dapat dibuka tetap bersifat global. Detail ada di [rute dan hak akses](docs/rute-dan-akses.md).
 
-## Security Vulnerabilities
+## Dokumentasi
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Mulai dari [indeks dokumentasi](docs/README.md).
 
-## License
+| Dokumen | Isi |
+| --- | --- |
+| [Instalasi](docs/instalasi.md) | Kebutuhan, konfigurasi, database, akun demo/operasional, server lokal |
+| [Arsitektur](docs/arsitektur.md) | Struktur proyek, alur request, service keuangan, komponen UI |
+| [Database](docs/database.md) | Tabel, relasi, tipe nilai, migrasi, kode transaksi |
+| [Aturan bisnis](docs/aturan-bisnis.md) | Perhitungan pencairan, bunga, setoran FIFO, status, dan laporan |
+| [Panduan pengguna](docs/panduan-pengguna.md) | Langkah kerja setiap modul |
+| [Rute dan hak akses](docs/rute-dan-akses.md) | Endpoint, gate, filter, dan batas akses |
+| [Pengujian](docs/pengujian.md) | Perintah pemeriksaan, hasil verifikasi, skenario uji bisnis |
+| [Operasional](docs/operasional.md) | Deployment, pencadangan, pemulihan, dan penanganan masalah |
+| [Catatan implementasi](docs/catatan-implementasi.md) | Batasan dan ketidaksesuaian pada kode |
+| [Analisis Figma](docs/figma-analysis.md) | Referensi desain dan sejarah keputusan awal |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Status verifikasi
+
+Pemeriksaan pada **8 Oktober 2026**: build frontend, kompilasi Blade, daftar rute, validasi Composer, serta status 19 migrasi pada database lokal berhasil. **16 tes revisi keuangan/hak akses dan 5 tes JavaScript lulus**. Suite penuh masih memiliki kegagalan bawaan: **18 lulus, 4 gagal, 19 error**, karena tes starter belum mengikuti username dan route aplikasi. Rincian dan batas pemeriksaan ada di [pengujian](docs/pengujian.md).
+
+Dokumentasi menjelaskan implementasi yang ada, termasuk batasan laporan historis dan rekonsiliasi setoran. Sebelum mengubah perhitungan uang, baca [aturan bisnis](docs/aturan-bisnis.md) dan [catatan implementasi](docs/catatan-implementasi.md).
