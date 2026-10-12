@@ -147,7 +147,7 @@ class KasController extends Controller
             'jenis' => ['required', Rule::in([TransaksiKas::JENIS_MASUK, TransaksiKas::JENIS_KELUAR])],
             'kategori_kas_id' => ['required', Rule::exists('kategori_kas', 'id')],
             'kelompok_tani_id' => ['nullable', Rule::exists('kelompok_tani', 'id')],
-            'jumlah' => ['required', 'numeric', 'decimal:0,2', 'min:1'],
+            'jumlah' => ['required', 'integer', 'min:1'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
         ], attributes: [
             'kategori_kas_id' => 'kategori',

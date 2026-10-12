@@ -145,7 +145,7 @@ class DanaTalanganController extends Controller
             'jenis' => ['required', Rule::in([DanaTalangan::JENIS_MASUK, DanaTalangan::JENIS_KELUAR])],
             // Penerima hanya relevan untuk klaim santunan (dana keluar).
             'penerima' => ['nullable', 'required_if:jenis,'.DanaTalangan::JENIS_KELUAR, 'string', 'max:255'],
-            'jumlah' => ['required', 'numeric', 'min:1'],
+            'jumlah' => ['required', 'integer', 'min:1'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
         ], messages: [
             'kelompok_tani_id.required_if' => 'Kelompok tani wajib dipilih untuk dana keluar.',

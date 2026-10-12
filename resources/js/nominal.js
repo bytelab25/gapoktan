@@ -1,32 +1,27 @@
-const formatter = new Intl.NumberFormat('id-ID', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-});
+const formatter = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 
 export function formatNominal(nilai) {
-    return formatter.format(Number(nilai) || 0);
+    return formatter.format(Math.round(Number(nilai) || 0));
 }
 
-// Titik memisahkan ribuan, koma memisahkan desimal pada masukan rupiah.
+// Rupiah selalu bulat: titik hanya pemisah ribuan, tidak ada angka desimal.
 export function parseNominal(teks) {
     const angka = String(teks).trim().replace(/^Rp\s*/i, '').replaceAll('.', '');
-    if (!/^\d+(?:,\d{0,2})?$/.test(angka)) return null;
+    if (!/^\d+$/.test(angka)) return null;
 
-    const nilai = Number(angka.replace(',', '.'));
-    return Number.isFinite(nilai) ? nilai : null;
+    const nilai = Number(angka);
+    return Number.isSafeInteger(nilai) ? nilai : null;
 }
 
+// Rapikan teks yang sedang diketik: buang karakter selain angka lalu beri titik ribuan.
 export function formatMasukanNominal(teks) {
-    if (parseNominal(teks) === null) return teks;
-
-    const [utuh, pecahan] = String(teks).trim().replace(/^Rp\s*/i, '').replaceAll('.', '').split(',');
-    const ribuan = utuh.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return ribuan + (pecahan === undefined ? '' : ',' + pecahan);
+    const angka = String(teks).replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    return angka.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
 export function inputNominal(awal = 0) {
     return {
-        nilai: Number(awal) || '',
+        nilai: Math.round(Number(awal)) || '',
         teks: Number(awal) ? formatNominal(awal) : '',
         init() {
             this.$watch('nilai', (nilai) => {
@@ -36,18 +31,20 @@ export function inputNominal(awal = 0) {
         },
         ubah(event) {
             const masukan = event.target;
-            const posisi = masukan.selectionStart;
-            const panjang = masukan.value.length;
-            const nilai = parseNominal(masukan.value);
+            // Hitung posisi kursor dari jumlah digit di kirinya, karena titik ribuan bisa bergeser.
+            const digitKiri = masukan.value.slice(0, masukan.selectionStart).replace(/\D/g, '').length;
+            const teks = formatMasukanNominal(masukan.value);
+            const nilai = parseNominal(teks);
             this.nilai = nilai ?? '';
-            this.teks = formatMasukanNominal(masukan.value);
-            masukan.setCustomValidity(masukan.value === '' || (nilai !== null && nilai >= 1)
-                ? '' : 'Masukkan nominal minimal Rp 1 dengan maksimal dua angka desimal, misalnya 1.000,50.');
-            // Pertahankan posisi kursor ketika pemisah ribuan berubah.
-            this.$nextTick(() => {
-                const kursor = Math.max(0, posisi + masukan.value.length - panjang);
-                masukan.setSelectionRange(kursor, kursor);
-            });
+            this.teks = teks;
+            masukan.value = teks;
+            masukan.setCustomValidity(teks === '' || (nilai !== null && nilai >= 1)
+                ? '' : 'Masukkan nominal minimal Rp 1.');
+            let kursor = 0;
+            for (let digit = 0; kursor < teks.length && digit < digitKiri; kursor++) {
+                if (/\d/.test(teks[kursor])) digit++;
+            }
+            masukan.setSelectionRange(kursor, kursor);
         },
         rapikan() {
             if (this.nilai !== '') this.teks = formatNominal(this.nilai);

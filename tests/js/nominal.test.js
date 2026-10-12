@@ -2,32 +2,31 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { formatNominal, formatMasukanNominal, parseNominal, tambahBulan } from '../../resources/js/nominal.js';
 
-test('nominal Indonesia mempertahankan sen saat dikonversi untuk server', () => {
-    for (const [teks, angka] of [['1.000.000,50', 1000000.50], ['Rp 25.123,99', 25123.99], ['1000', 1000], ['1,05', 1.05]]) {
+test('nominal rupiah dibaca sebagai bilangan bulat untuk server', () => {
+    for (const [teks, angka] of [['1.000.000', 1000000], ['Rp 25.123', 25123], ['1000', 1000], ['500.000.000', 500000000]]) {
         assert.equal(parseNominal(teks), angka);
         assert.equal(parseNominal(formatNominal(angka)), angka);
-        assert.equal(Number(parseNominal(teks).toFixed(2)), angka);
     }
 });
 
-test('masukan yang sedang diketik menjaga koma dan posisi desimal', () => {
-    assert.equal(formatMasukanNominal('1000000,'), '1.000.000,');
-    assert.equal(formatMasukanNominal('1000000,5'), '1.000.000,5');
-    assert.equal(formatNominal(parseNominal('1000000,5')), '1.000.000,50');
-    assert.equal(formatMasukanNominal('0001000,50'), '1.000,50');
+test('masukan yang sedang diketik diberi titik setiap tiga angka', () => {
+    assert.equal(formatMasukanNominal('500000000'), '500.000.000');
+    assert.equal(formatMasukanNominal('1.0000'), '10.000');
+    assert.equal(formatMasukanNominal('0001000'), '1.000');
+    assert.equal(formatMasukanNominal('12,5abc'), '125');
+    assert.equal(formatMasukanNominal(''), '');
 });
 
-test('nominal kosong, negatif, teks, dan lebih dari dua desimal ditolak', () => {
-    for (const teks of ['', '-1.000,50', '1,234', '1,2,3', '1e6', 'NaN', '100rupiah']) {
+test('nominal kosong, negatif, desimal, dan teks ditolak', () => {
+    for (const teks of ['', '-1.000', '1,5', '1.000,50', '1e6', 'NaN', '100rupiah']) {
         assert.equal(parseNominal(teks), null, teks);
     }
 });
 
-test('potongan dan jumlah diterima menampilkan dua angka desimal', () => {
-    const jumlah = parseNominal('1.000.000,50');
-    const potongan = Math.round(jumlah * 1.5) / 100;
-    assert.equal(formatNominal(potongan), '15.000,01');
-    assert.equal(formatNominal(jumlah - potongan), '985.000,49');
+test('tampilan nominal selalu tanpa angka desimal', () => {
+    assert.equal(formatNominal(15000.01), '15.000');
+    assert.equal(formatNominal(985000.5), '985.001');
+    assert.equal(formatNominal(0), '0');
 });
 
 test('tanggal standar empat bulan melewati tahun dan mengikuti overflow Carbon', () => {

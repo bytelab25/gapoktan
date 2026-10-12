@@ -18,7 +18,7 @@
              antrian: @js($antrian),
              totalBunga: {{ $totalBunga }},
              totalPelunasan: {{ $totalPelunasan }},
-             rupiah(nilai) { return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(nilai || 0)) },
+             rupiah(nilai) { return 'Rp ' + formatNominal(nilai) },
              /* Cermin logika server: bunga dulu, lalu pokok, pinjaman tertua lebih dulu. */
              get alokasi() {
                  let sisa = this.jumlah || 0;
@@ -31,7 +31,7 @@
                  });
              },
              get terpakai() { return this.alokasi.reduce((jumlah, item) => jumlah + item.total, 0) },
-             get kelebihan() { return Math.max(0, (this.jumlah || 0) - this.terpakai) },
+             get kelebihan() { return Math.max(0, (this.jumlah || 0) - Math.ceil(this.terpakai)) },
          }"
          class="space-y-6">
 
@@ -192,17 +192,13 @@
 
                 <div>
                     <label for="jumlah" class="label-field">Jumlah Setoran</label>
-                    <div class="relative">
-                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-semibold text-slate-400">Rp</span>
-                        <input id="jumlah" name="jumlah" type="number" min="1" step="0.01" required
-                               x-model.number="jumlah" placeholder="Masukkan Total Bayar" class="input-field pl-11">
-                    </div>
+                    <x-input-nominal name="jumlah" :value="old('jumlah', 0)" placeholder="Masukkan Total Bayar" />
                     <div class="mt-2.5 flex flex-wrap gap-2">
-                        <button type="button" x-on:click="jumlah = totalBunga" class="chip">
+                        <button type="button" x-on:click="jumlah = Math.ceil(totalBunga)" class="chip">
                             <x-icon name="persen" class="h-3.5 w-3.5" />
                             Bayar bunga saja
                         </button>
-                        <button type="button" x-on:click="jumlah = totalPelunasan" class="chip">
+                        <button type="button" x-on:click="jumlah = Math.ceil(totalPelunasan)" class="chip">
                             <x-icon name="centang" class="h-3.5 w-3.5" />
                             Lunasi semua
                         </button>

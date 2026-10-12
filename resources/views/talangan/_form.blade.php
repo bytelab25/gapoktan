@@ -1,6 +1,6 @@
 @php $transaksi ??= null; @endphp
 
-<div x-data="{ jenis: '{{ old('jenis', $transaksi?->jenis ?? 'masuk') }}' }" class="grid gap-5 md:grid-cols-2">
+<div x-data="{ jenis: '{{ old('jenis', $transaksi?->jenis ?? 'masuk') }}', jumlah: {{ (float) old('jumlah', $transaksi?->jumlah ?? 0) }} }" class="grid gap-5 md:grid-cols-2">
     <div class="md:col-span-2">
         <label for="kelompok_tani_id" class="label-field">
             Kelompok Tani
@@ -34,11 +34,7 @@
 
     <div>
         <label for="jumlah" class="label-field">Jumlah (Rp)</label>
-        <div class="relative">
-            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-semibold text-slate-400">Rp</span>
-            <input id="jumlah" name="jumlah" type="number" min="1" step="0.01" required
-                   value="{{ old('jumlah', $transaksi?->jumlah) }}" placeholder="0" class="input-field pl-11">
-        </div>
+        <x-input-nominal name="jumlah" :value="old('jumlah', $transaksi?->jumlah ?? 0)" />
         <x-input-error :messages="$errors->get('jumlah')" class="mt-2" />
     </div>
 

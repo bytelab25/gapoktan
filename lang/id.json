@@ -1,0 +1,22 @@
+{
+    "Forbidden": "Akses Ditolak",
+    "Not Found": "Halaman Tidak Ditemukan",
+    "Page Expired": "Halaman Kedaluwarsa",
+    "Payment Required": "Pembayaran Diperlukan",
+    "Server Error": "Terjadi Kesalahan Server",
+    "Service Unavailable": "Layanan Tidak Tersedia",
+    "Too Many Requests": "Terlalu Banyak Permintaan",
+    "Unauthorized": "Tidak Terautentikasi",
+    "This action is unauthorized.": "Anda tidak memiliki izin untuk melakukan aksi ini.",
+    "Unauthenticated.": "Silakan masuk terlebih dahulu.",
+    "Whoops! Something went wrong.": "Waduh! Terjadi kesalahan.",
+    "The given data was invalid.": "Data yang dikirim tidak valid.",
+    "(and :count more error)": "(dan :count kesalahan lainnya)",
+    "(and :count more errors)": "(dan :count kesalahan lainnya)",
+    "Showing": "Menampilkan",
+    "to": "sampai",
+    "of": "dari",
+    "results": "hasil",
+    "Pagination Navigation": "Navigasi Halaman",
+    "Go to page :page": "Ke halaman :page"
+}

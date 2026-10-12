@@ -67,7 +67,26 @@ class RevisiKeuanganTest extends TestCase
         $this->put(route('pengaturan.update'), $this->pengaturanBaru())->assertForbidden();
     }
 
-    public function test_tanggal_pilihan_dan_nominal_desimal_pinjaman_tersimpan(): void
+    public function test_tanggal_pilihan_dan_nominal_bulat_pinjaman_tersimpan(): void
+    {
+        $kelompok = $this->kelompok();
+        $this->actingAs($this->pengguna())->post(route('pinjaman.store'), [
+            'kelompok_tani_id' => $kelompok->id,
+            'tanggal_transaksi' => '2026-10-08',
+            'tanggal_jatuh_tempo' => '2026-12-15',
+            'jumlah_pinjaman' => '1000000',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $pinjaman = Pinjaman::firstOrFail();
+        $this->assertSame('2026-12-15', $pinjaman->tanggal_jatuh_tempo->toDateString());
+        $this->assertSame('1000000.00', $pinjaman->jumlah_pinjaman);
+        $this->assertSame('15000.00', $pinjaman->potongan_nominal);
+        $this->assertSame('985000.00', $pinjaman->jumlah_diterima);
+        $this->assertSame('985000.00', $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::PENCAIRAN_PINJAMAN)->firstOrFail()->jumlah);
+        $this->assertSame('10000.00', $pinjaman->danaTalangan()->firstOrFail()->jumlah);
+    }
+
+    public function test_nominal_pinjaman_desimal_ditolak(): void
     {
         $kelompok = $this->kelompok();
         $this->actingAs($this->pengguna())->post(route('pinjaman.store'), [
@@ -75,15 +94,9 @@ class RevisiKeuanganTest extends TestCase
             'tanggal_transaksi' => '2026-10-08',
             'tanggal_jatuh_tempo' => '2026-12-15',
             'jumlah_pinjaman' => '1000000.50',
-        ])->assertSessionHasNoErrors()->assertRedirect();
+        ])->assertSessionHasErrors('jumlah_pinjaman');
 
-        $pinjaman = Pinjaman::firstOrFail();
-        $this->assertSame('2026-12-15', $pinjaman->tanggal_jatuh_tempo->toDateString());
-        $this->assertSame('1000000.50', $pinjaman->jumlah_pinjaman);
-        $this->assertSame('15000.01', $pinjaman->potongan_nominal);
-        $this->assertSame('985000.49', $pinjaman->jumlah_diterima);
-        $this->assertSame('985000.49', $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::PENCAIRAN_PINJAMAN)->firstOrFail()->jumlah);
-        $this->assertSame('10000.01', $pinjaman->danaTalangan()->firstOrFail()->jumlah);
+        $this->assertSame(0, Pinjaman::count());
     }
 
     public function test_tanggal_jatuh_tempo_dapat_disunting_tanpa_dihitung_ulang(): void
@@ -116,7 +129,7 @@ class RevisiKeuanganTest extends TestCase
         $this->assertDatabaseCount('transaksi_kas', 0);
     }
 
-    public function test_kas_menyimpan_dua_angka_desimal(): void
+    public function test_kas_menyimpan_rupiah_bulat_dan_menolak_desimal(): void
     {
         $kategori = KategoriKas::create(['nama' => 'Hibah']);
         $this->actingAs($this->pengguna())->post(route('kas.store'), [
@@ -124,8 +137,16 @@ class RevisiKeuanganTest extends TestCase
             'jenis' => 'masuk',
             'kategori_kas_id' => $kategori->id,
             'jumlah' => '1234567.89',
+        ])->assertSessionHasErrors('jumlah');
+        $this->assertDatabaseCount('transaksi_kas', 0);
+
+        $this->post(route('kas.store'), [
+            'tanggal' => '2026-10-08',
+            'jenis' => 'masuk',
+            'kategori_kas_id' => $kategori->id,
+            'jumlah' => '1234567',
         ])->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertSame('1234567.89', TransaksiKas::firstOrFail()->jumlah);
+        $this->assertSame('1234567.00', TransaksiKas::firstOrFail()->jumlah);
     }
 
     public function test_pembayaran_dua_bulan_dibuka_dan_bunga_dialokasikan_sebelum_pokok(): void
@@ -139,15 +160,15 @@ class RevisiKeuanganTest extends TestCase
 
         $this->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
             'tanggal' => '2026-10-08',
-            'jumlah' => '140000.50',
+            'jumlah' => '140000',
         ])->assertSessionHasNoErrors()->assertRedirect();
 
         $bayar = PembayaranPinjaman::firstOrFail();
         $this->assertSame('40000.00', $bayar->bunga_nominal);
-        $this->assertSame('100000.50', $bayar->bayar_pokok);
-        $this->assertEquals(899999.50, $pinjaman->fresh()->sisa_pokok);
+        $this->assertSame('100000.00', $bayar->bayar_pokok);
+        $this->assertEquals(900000, $pinjaman->fresh()->sisa_pokok);
         $this->assertSame('2026-12-08', $pinjaman->fresh()->tanggal_jatuh_tempo->toDateString());
-        $this->assertSame('140000.50', TransaksiKas::firstOrFail()->jumlah);
+        $this->assertSame('140000.00', TransaksiKas::firstOrFail()->jumlah);
     }
 
     public function test_setoran_pada_hari_pencairan_langsung_mengurangi_pokok(): void
@@ -155,11 +176,11 @@ class RevisiKeuanganTest extends TestCase
         $pinjaman = $this->pinjaman(['tanggal_transaksi' => '2026-10-08']);
         $this->actingAs($this->pengguna())->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
             'tanggal' => '2026-10-08',
-            'jumlah' => '250000.25',
+            'jumlah' => '250000',
         ])->assertSessionHasNoErrors()->assertRedirect();
         $bayar = PembayaranPinjaman::firstOrFail();
         $this->assertSame('0.00', $bayar->bunga_nominal);
-        $this->assertSame('250000.25', $bayar->bayar_pokok);
+        $this->assertSame('250000.00', $bayar->bayar_pokok);
     }
 
     public function test_setoran_tidak_boleh_mendahului_pencairan(): void

@@ -198,7 +198,7 @@ class PinjamanController extends Controller
             'kelompok_tani_id' => ['required', Rule::exists('kelompok_tani', 'id')],
             'tanggal_transaksi' => ['required', 'date'],
             'tanggal_jatuh_tempo' => ['required', 'date', 'after_or_equal:tanggal_transaksi'],
-            'jumlah_pinjaman' => ['required', 'numeric', 'decimal:0,2', 'min:1'],
+            'jumlah_pinjaman' => ['required', 'integer', 'min:1'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
         ], attributes: [
             'kelompok_tani_id' => 'kelompok tani',
