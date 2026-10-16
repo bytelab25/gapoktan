@@ -47,14 +47,13 @@
                 <label for="password" class="label-field">
                     Password <span class="font-normal text-slate-400">(kosongkan bila tidak diganti)</span>
                 </label>
-                <input id="password" name="password" type="password" autocomplete="new-password" class="input-field">
+                <x-input-password name="password" />
                 <x-input-error :messages="$errors->get('password')" class="mt-2" />
             </div>
 
             <div>
                 <label for="password_confirmation" class="label-field">Konfirmasi Password</label>
-                <input id="password_confirmation" name="password_confirmation" type="password"
-                       autocomplete="new-password" class="input-field">
+                <x-input-password name="password_confirmation" />
             </div>
         </div>
 

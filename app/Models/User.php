@@ -59,7 +59,7 @@ class User extends Authenticatable
 
     /**
      * Sekretaris dan bendahara mengubah data operasional; ketua mengawasi
-     * transaksi dan memegang pengaturan sistem.
+     * transaksi, mengelola akun, dan memegang pengaturan sistem.
      */
     public function isAdmin(): bool
     {
@@ -75,11 +75,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Pengurus dapat melihat pengaturan suku bunga dan potongan.
+     * Semua role dapat melihat pengaturan suku bunga dan potongan; yang
+     * bukan ketua hanya mendapat tampilan baca saja.
      */
     public function bisaLihatPengaturan(): bool
     {
-        return $this->isAdmin() || $this->role === self::ROLE_KETUA;
+        return true;
     }
 
     public function bisaKelolaPengaturan(): bool
@@ -87,9 +88,12 @@ class User extends Authenticatable
         return $this->role === self::ROLE_KETUA;
     }
 
+    /**
+     * Sekretaris, bendahara, dan ketua sama-sama boleh mengelola akun.
+     */
     public function bisaKelolaPengguna(): bool
     {
-        return $this->isAdmin();
+        return $this->isAdmin() || $this->role === self::ROLE_KETUA;
     }
 
     /**

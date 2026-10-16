@@ -51,13 +51,7 @@ class PembayaranPinjamanController extends Controller
 
     public function store(Request $request, KelompokTani $kelompok): RedirectResponse
     {
-        $data = $request->validate([
-            'tanggal' => ['required', 'date'],
-            'jumlah' => ['required', 'integer', 'min:1'],
-            'deskripsi' => ['nullable', 'string', 'max:1000'],
-        ], attributes: [
-            'jumlah' => 'jumlah setoran',
-        ]);
+        $data = $this->validasi($request);
 
         $tanggal = Carbon::parse($data['tanggal']);
         $layanan = new SetoranPinjaman($kelompok);
@@ -96,9 +90,85 @@ class PembayaranPinjamanController extends Controller
             $pertama->kode_setoran,
         );
 
+        // Faktur tidak dibuka otomatis; bisa dicetak kapan saja dari riwayat pembayaran.
         return redirect()
-            ->route('pembayaran.faktur', $pertama)
-            ->with('sukses', 'Setoran berhasil dicatat.');
+            ->route('pinjaman.kelompok', $kelompok)
+            ->with('sukses', 'Setoran '.$pertama->kode_setoran.' berhasil dicatat.');
+    }
+
+    public function edit(PembayaranPinjaman $pembayaran): View
+    {
+        $pembayaran->load('pinjaman.kelompokTani');
+        $daftarBaris = $pembayaran->satuSetoran();
+
+        return view('pinjaman.sunting-setoran', [
+            'pembayaran' => $pembayaran,
+            'kelompok' => $pembayaran->pinjaman->kelompokTani,
+            'daftarBaris' => $daftarBaris,
+            'jumlah' => (float) $daftarBaris->sum('total_bayar'),
+        ]);
+    }
+
+    public function update(Request $request, PembayaranPinjaman $pembayaran): RedirectResponse
+    {
+        $data = $this->validasi($request);
+        $kelompok = $pembayaran->pinjaman->kelompokTani;
+        $kodeSetoran = $pembayaran->kode_setoran ?? $pembayaran->kode;
+
+        (new SetoranPinjaman($kelompok))->ubah(
+            $kodeSetoran,
+            Carbon::parse($data['tanggal']),
+            (float) $data['jumlah'],
+            $data['deskripsi'] ?? null,
+            $request->user(),
+        );
+
+        LogAktivitas::catat(
+            LogAktivitas::TINDAKAN_SUNTING,
+            'Mengubah setoran pinjaman '.$kelompok->nama_kelompok.' menjadi '.rupiah((float) $data['jumlah']),
+            $kodeSetoran,
+        );
+
+        return redirect()
+            ->route('pinjaman.kelompok', $kelompok)
+            ->with('sukses', 'Setoran '.$kodeSetoran.' berhasil diperbarui. Riwayat pembayaran kelompok dihitung ulang.');
+    }
+
+    public function destroy(Request $request, PembayaranPinjaman $pembayaran): RedirectResponse
+    {
+        $kelompok = $pembayaran->pinjaman->kelompokTani;
+        $kodeSetoran = $pembayaran->kode_setoran ?? $pembayaran->kode;
+        $total = (float) $pembayaran->satuSetoran()->sum('total_bayar');
+
+        try {
+            (new SetoranPinjaman($kelompok))->hapus($kodeSetoran, $request->user());
+        } catch (ValidationException $galat) {
+            return back()->with('gagal', 'Setoran tidak bisa dihapus. '.collect($galat->errors())->flatten()->first());
+        }
+
+        LogAktivitas::catat(
+            LogAktivitas::TINDAKAN_HAPUS,
+            'Menghapus setoran pinjaman '.rupiah($total).' dari '.$kelompok->nama_kelompok,
+            $kodeSetoran,
+        );
+
+        return redirect()
+            ->route('pinjaman.kelompok', $kelompok)
+            ->with('sukses', 'Setoran '.$kodeSetoran.' berhasil dihapus beserta transaksi kasnya.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validasi(Request $request): array
+    {
+        return $request->validate([
+            'tanggal' => ['required', 'date'],
+            'jumlah' => ['required', 'integer', 'min:1'],
+            'deskripsi' => ['nullable', 'string', 'max:1000'],
+        ], attributes: [
+            'jumlah' => 'jumlah setoran',
+        ]);
     }
 
     public function faktur(PembayaranPinjaman $pembayaran): View

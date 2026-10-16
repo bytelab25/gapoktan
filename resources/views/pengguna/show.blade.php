@@ -14,8 +14,8 @@
                 'Alamat' => $pengguna->alamat ?: '-',
                 'Role' => $pengguna->label_role,
                 'Hak Akses' => match (true) {
-                    $pengguna->isAdmin() => 'Kelola data operasional dan akun pengguna; pengaturan hanya dapat dilihat',
-                    $pengguna->role === \App\Models\User::ROLE_KETUA => 'Lihat data operasional dan sunting pengaturan sistem',
+                    $pengguna->isAdmin() => 'Mengelola data transaksi operasional serta akun pengguna; Pengaturan Sistem hanya dapat dilihat',
+                    $pengguna->role === \App\Models\User::ROLE_KETUA => 'Mengawasi operasional, mengelola akun, serta mengubah Pengaturan Sistem',
                     default => 'Hanya melihat data, tidak bisa menambah atau mengubah',
                 },
             ] as $label => $nilai)

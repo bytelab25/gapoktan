@@ -12,6 +12,7 @@ class TransaksiKas extends Model
     use HasFactory;
 
     public const JENIS_MASUK = 'masuk';
+
     public const JENIS_KELUAR = 'keluar';
 
     protected $table = 'transaksi_kas';
@@ -23,6 +24,7 @@ class TransaksiKas extends Model
         'kategori_kas_id',
         'kelompok_tani_id',
         'pinjaman_id',
+        'kode_setoran',
         'jumlah',
         'biaya',
         'deskripsi',
@@ -59,12 +61,12 @@ class TransaksiKas extends Model
     }
 
     /**
-     * Baris kas yang lahir otomatis dari pencairan pinjaman tidak boleh
-     * disunting manual, supaya angkanya tetap sama dengan pinjamannya.
+     * Baris kas yang lahir otomatis dari pencairan atau setoran pinjaman
+     * tidak boleh disunting manual, supaya angkanya tetap sama dengan sumbernya.
      */
     public function getOtomatisAttribute(): bool
     {
-        return $this->pinjaman_id !== null;
+        return $this->pinjaman_id !== null || $this->kode_setoran !== null;
     }
 
     /**

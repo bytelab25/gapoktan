@@ -4,7 +4,7 @@ Dokumen ini menjelaskan perilaku yang diimplementasikan dalam [`Pinjaman`](../ap
 
 ## Pengaturan dan snapshot
 
-Default koperasi adalah bunga **2% per bulan**, potongan operasional **0,5%**, dan potongan talangan **1%**. Bunga berjalan berbeda dari potongan saat pencairan. Ketiganya hanya dapat diubah oleh ketua; sekretaris dan bendahara boleh melihat.
+Default koperasi adalah bunga **2% per bulan**, potongan operasional **0,5%**, dan potongan talangan **1%**. Bunga berjalan berbeda dari potongan saat pencairan. Ketiganya hanya dapat diubah oleh ketua; role lain boleh melihat dalam mode baca saja.
 
 Pinjaman baru menyimpan snapshot `bunga_persen`, `potongan_persen` gabungan, serta `potongan_talangan_persen`. Perubahan pengaturan tidak mengubah snapshot pinjaman lama. Penyuntingan pinjaman tetap memakai persentase tersimpan, sedangkan penyuntingan kas manual menghitung ulang `biaya` menggunakan persentase operasional saat penyuntingan.
 
@@ -83,17 +83,21 @@ Prioritas bunga berlaku **di dalam setiap pinjaman**. Pokok pinjaman tertua diba
 
 Satu setoran dapat menghasilkan beberapa baris `pembayaran_pinjaman`, disatukan `kode_setoran`. Setiap baris menyimpan bunga, pokok, bulan bunga, dan total. Kas menerima satu baris masuk sebesar jumlah yang teralokasi, dengan kategori `Pembayaran Pinjaman`.
 
-Controller menolak setoran di atas total pelunasan dengan toleransi perbandingan Rp0,01. Tagihan mencakup pinjaman belum lunas dengan tanggal pencairan ≤ tanggal setoran, termasuk pinjaman yang belum genap empat bulan. Setoran sebelum pencairan tidak dialokasikan. Tidak ada route pembatalan, penyuntingan, atau penghapusan pembayaran.
+Controller menolak setoran di atas total pelunasan dengan toleransi perbandingan Rp0,01. Tagihan mencakup pinjaman belum lunas dengan tanggal pencairan ≤ tanggal setoran, termasuk pinjaman yang belum genap empat bulan. Setoran sebelum pencairan tidak dialokasikan.
+
+Setoran dapat disunting (tanggal, nominal, catatan) dan dihapus dari halaman detail pinjaman kelompok. Karena bunga, tunggakan, termin, dan alokasi FIFO bergantung pada setoran sebelumnya, `SetoranPinjaman::susunUlang()` memutar ulang seluruh setoran kelompok: semua baris pembayaran dibuang, pinjaman dikembalikan ke termin 1 dengan `tanggal_jatuh_tempo_awal`, lalu setoran dialokasikan ulang urut tanggal. Kode setoran, kode baris `BP-...`, dan kode kas `TXN-...` lama dipakai lagi. Bila salah satu setoran menjadi melebihi tagihan atau tidak punya tagihan, seluruh perubahan dibatalkan. Setoran baru juga melewati jalur yang sama, jadi setoran bertanggal mundur teralokasi dengan benar. Baris kas setoran ditautkan lewat `transaksi_kas.kode_setoran` dan tidak bisa disunting dari menu Kas.
+
+Pinjaman yang sudah punya pembayaran dikunci: tidak bisa disunting atau dihapus. Hapus setorannya lebih dulu bila akad perlu dikoreksi.
 
 ## Dua arti status
 
 | Status | Pada satu pinjaman | Pada kelompok |
 | --- | --- | --- |
 | `lunas` | Sisa pokok ≤ 0 | Tidak ada pinjaman berstatus selain lunas |
-| `belum_bayar` | Pokok tersisa dan jatuh tempo belum lewat saat status disegarkan | Ada pinjaman aktif dan semuanya belum memiliki pembayaran |
-| `menunggak` | Pokok tersisa dan jatuh tempo lewat saat status disegarkan | Ada pinjaman aktif dan setidaknya satu sudah memiliki pembayaran |
+| `belum_bayar` | Pokok tersisa dan belum ada pembayaran | Ada pinjaman aktif dan semuanya belum memiliki pembayaran |
+| `menunggak` | Pokok tersisa dan sudah ada pembayaran sebagian | Ada pinjaman aktif dan setidaknya satu sudah memiliki pembayaran |
 
-Status kelompok `menunggak` bukan pemeriksaan keterlambatan kalender. `segarkanStatus()` memakai waktu saat metode berjalan, bukan tanggal pembayaran historis. Daftar dan detail tidak otomatis menyegarkan status hanya karena tanggal berganti; belum ada scheduler untuk itu.
+Sejak revisi 16 Oktober 2026 kedua arti `menunggak` sama: sudah menyetor sebagian tapi belum lunas. Status tidak lagi bergantung pada tanggal jatuh tempo, sehingga tidak perlu scheduler.
 
 ## Kas manual dan talangan manual
 

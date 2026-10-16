@@ -1,6 +1,6 @@
 # Panduan penggunaan
 
-Panduan mengikuti menu dan form yang ada. Ketersediaan aksi bergantung pada [hak akses](rute-dan-akses.md). Sekretaris dan bendahara menjalankan pencatatan; ketua mengawasi data dan mengubah pengaturan; pengguna melihat data keuangan dan mengelola profil sendiri.
+Panduan mengikuti menu dan form yang ada. Ketersediaan aksi bergantung pada [hak akses](rute-dan-akses.md). Sekretaris dan bendahara menjalankan pencatatan; ketua mengawasi data, mengelola akun, dan mengubah pengaturan; pengguna melihat data keuangan dan mengelola profil sendiri.
 
 ## Masuk dan navigasi
 
@@ -9,7 +9,7 @@ Panduan mengikuti menu dan form yang ada. Ketersediaan aksi bergantung pada [hak
 3. Setelah masuk, Beranda menampilkan saldo kas, saldo talangan, dana beredar, dan tautan laporan.
 4. Gunakan sidebar untuk membuka modul. Pada layar kecil, buka sidebar melalui tombol menu di topbar.
 
-Ikon `+` untuk administrator menyediakan pintasan membuat kelompok, pinjaman, dan pembayaran. Ikon riwayat berbentuk dokumen dengan jam di pojok atas dan menampilkan tiga aktivitas terakhir serta tautan Log Aktivitas. Ikon pengaturan tersedia bagi ketua, sekretaris, dan bendahara. Menu profil memuat Data Diri dan Keluar. Halaman login tidak menampilkan jumlah kelompok tani.
+Ikon `+` untuk administrator menyediakan pintasan membuat kelompok, pinjaman, dan pembayaran. Ikon riwayat berbentuk dokumen dengan jam di pojok atas dan menampilkan tiga aktivitas terakhir serta tautan Log Aktivitas. Ikon pengaturan tersedia untuk semua role; selain ketua hanya bisa melihat. Menu profil memuat Data Diri dan Keluar. Keluar selalu meminta konfirmasi lebih dulu. Halaman login tidak menampilkan jumlah kelompok tani.
 
 Pesan berhasil/gagal tampil sebagai toast. Pesan validasi muncul dekat input. Tabel dapat digulir mendatar jika layar sempit; pagination menyediakan pilihan 10, 25, atau 50 baris.
 
@@ -17,7 +17,7 @@ Pesan berhasil/gagal tampil sebagai toast. Pesan validasi muncul dekat input. Ta
 
 Sebelum mencatat akad pertama, pengurus memeriksa Pengaturan Sistem: suku bunga pinjaman per bulan, potongan operasional, dan potongan dana talangan. Default masing-masing 2%, 0,5%, dan 1%. Jumlah dua potongan membentuk potongan muka 1,5%.
 
-Hanya ketua dapat menyimpan perubahan; sekretaris dan bendahara melihat nilai dengan field baca saja. Perubahan berlaku untuk pinjaman baru. Persentase pinjaman lama tetap tersimpan. Jangan menyamakan bunga bulanan dengan potongan muka. Baca contoh di [aturan bisnis](aturan-bisnis.md).
+Hanya ketua dapat menyimpan perubahan; role lain melihat nilai dengan field baca saja. Perubahan berlaku untuk pinjaman baru. Persentase pinjaman lama tetap tersimpan. Jangan menyamakan bunga bulanan dengan potongan muka. Baca contoh di [aturan bisnis](aturan-bisnis.md).
 
 ## Kelompok Tani
 
@@ -52,7 +52,9 @@ Klik baris untuk membuka detail, menyunting/menghapus transaksi manual, atau mem
 
 Pencairan membuat kas keluar dan talangan masuk otomatis. Detail memuat pokok awal, sisa pokok, bunga terbayar, bunga terhutang, termin, kontribusi talangan, dan riwayat pembayaran. Filter daftar tersedia berdasarkan kelompok dan status.
 
-Penyuntingan nominal/tanggal/kelompok masih tersedia pada kode saat ini, bahkan setelah pembayaran. Jika sudah ada pembayaran, perubahan tersebut dapat membuat riwayat tidak konsisten; lakukan rekonsiliasi sebelum mengubah akad. Pinjaman dengan riwayat pembayaran tidak dapat dihapus.
+Daftar Pinjaman Kelompok menampilkan satu baris per kelompok tani yang pernah meminjam, termasuk yang sudah lunas. Klik baris untuk membuka detail kelompok: daftar transaksi berisi pinjaman dan setoran, dengan filter Semua/Pinjaman/Pembayaran serta tombol **Buat Transaksi**.
+
+Pinjaman yang belum punya pembayaran bisa disunting dan dihapus. Setelah ada pembayaran, pinjaman terkunci; hapus setorannya lebih dulu bila akad perlu dikoreksi.
 
 ## Pembayaran pinjaman
 
@@ -61,7 +63,9 @@ Penyuntingan nominal/tanggal/kelompok masih tersedia pada kode saat ini, bahkan 
 3. Setoran bisa dibuat sejak tanggal pencairan, termasuk sebelum empat bulan. Pinjaman dengan tanggal pencairan masa depan tampil pada **Belum Dicairkan**.
 4. Isi tanggal, jumlah setoran, dan catatan.
 5. Periksa **Pembagian Setoran**, lalu tekan **Catat Setoran**.
-6. Faktur setoran menampilkan pembagian bunga/pokok ke setiap pinjaman.
+6. Setelah tersimpan, sistem kembali ke detail pinjaman kelompok. Faktur tidak dibuka otomatis; cetak dari tombol **Faktur** pada baris setoran bila perlu.
+
+Ringkasan form (Bayar Bunga, Bayar Pinjaman Pokok, Sisa Pinjaman Semua, Total Bayar) berubah mengikuti nominal yang diketik.
 
 Jumlah dapat lebih kecil dari bunga terhutang; selisih menjadi tunggakan bunga. Jumlah melebihi tagihan ditolak. Pembagian berlangsung otomatis: bunga dan pokok akad tertua, baru beralih ke akad berikutnya.
 
@@ -69,7 +73,7 @@ Tombol **Bayar bunga saja** mengisi total bunga kelompok. Jika ada beberapa akad
 
 **Pratinjau memakai tanggal hari ini saat halaman dimuat.** Mengubah input tanggal belum memperbarui tagihan/pratinjau; server menghitung ulang memakai tanggal yang dikirim saat menyimpan. Memuat ulang halaman juga belum menyediakan pilihan tanggal historis pada query. Untuk setoran tanggal lain, periksa perhitungan dan faktur hasil penyimpanan, jangan menganggap pratinjau telah menyesuaikan.
 
-Tidak tersedia aksi membatalkan atau mengedit setoran. Kesalahan pembayaran memerlukan penanganan pengembang/operator database dengan rekonsiliasi seluruh pos terkait; jangan menghapus kas masuk saja.
+Setoran yang keliru disunting atau dihapus dari baris setoran di detail pinjaman kelompok. Seluruh setoran kelompok dihitung ulang urut tanggal, termasuk bunga, termin, dan kas masuknya. Bila koreksi membuat setoran lain melebihi tagihan, perubahan ditolak dan data tidak berubah.
 
 ## Dana Talangan
 
@@ -96,7 +100,7 @@ Faktur Kas, Pinjaman, Setoran, dan Talangan memakai tombol **Cetak PDF** yang me
 
 ## Pengguna, profil, dan sandi
 
-Administrator membuat akun melalui Pengguna, mengisi nama, username unik, nomor HP, alamat, role, sandi dan konfirmasi. Ketua dapat melihat daftar/detail akun tetapi tidak mengubahnya. Role `user` tidak membuka modul ini.
+Administrator membuat akun melalui Pengguna, mengisi nama, username unik, nomor HP, alamat, role, sandi dan konfirmasi. Ketua juga dapat membuat, menyunting, dan menghapus akun. Role `user` tidak membuka modul ini.
 
 Pada penyuntingan akun, kosongkan sandi bila tidak diganti. Sistem menolak penghapusan akun sendiri dan administrator terakhir, serta penurunan role administrator terakhir ke non-admin. Tidak ada registrasi atau reset email; akun yang lupa sandi ditangani sekretaris/bendahara melalui penyuntingan akun.
 

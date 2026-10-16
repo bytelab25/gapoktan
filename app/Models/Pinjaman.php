@@ -36,6 +36,7 @@ class Pinjaman extends Model
         'kelompok_tani_id',
         'tanggal_transaksi',
         'tanggal_jatuh_tempo',
+        'tanggal_jatuh_tempo_awal',
         'termin',
         'jumlah_pinjaman',
         'potongan_persen',
@@ -54,6 +55,7 @@ class Pinjaman extends Model
         return [
             'tanggal_transaksi' => 'date',
             'tanggal_jatuh_tempo' => 'date',
+            'tanggal_jatuh_tempo_awal' => 'date',
             'termin' => 'integer',
             'jumlah_pinjaman' => 'decimal:2',
             'potongan_persen' => 'decimal:2',
@@ -63,6 +65,14 @@ class Pinjaman extends Model
             'bunga_persen' => 'decimal:2',
             'tunggakan_bunga' => 'decimal:2',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Jatuh tempo awal jadi titik mulai saat setoran dihitung ulang.
+        static::creating(function (Pinjaman $pinjaman) {
+            $pinjaman->tanggal_jatuh_tempo_awal ??= $pinjaman->tanggal_jatuh_tempo;
+        });
     }
 
     public function kelompokTani(): BelongsTo
@@ -182,6 +192,27 @@ class Pinjaman extends Model
         return self::BULAN_PER_TERMIN * $this->termin;
     }
 
+    /**
+     * Pinjaman yang sudah punya setoran dikunci: nominal dan tanggalnya
+     * menjadi dasar perhitungan bunga setoran tersebut.
+     */
+    /**
+     * Jatuh tempo sebelum digeser termin. Bila kolomnya kosong (data yang
+     * dibuat tanpa event model), tarik mundur dari termin yang berjalan.
+     */
+    public function jatuhTempoAwal(): Carbon
+    {
+        return $this->tanggal_jatuh_tempo_awal?->copy()
+            ?? $this->tanggal_jatuh_tempo->copy()->subMonthsNoOverflow(self::BULAN_PER_TERMIN * max(0, $this->termin - 1));
+    }
+
+    public function bisaDiubah(): bool
+    {
+        return $this->relationLoaded('pembayaran')
+            ? $this->pembayaran->isEmpty()
+            : ! $this->pembayaran()->exists();
+    }
+
     public function getLabelStatusAttribute(): string
     {
         return self::LABEL_STATUS[$this->status] ?? $this->status;
@@ -201,7 +232,9 @@ class Pinjaman extends Model
     }
 
     /**
-     * Hitung ulang status dari sisa pokok dan tanggal jatuh tempo, lalu simpan.
+     * Hitung ulang status dari sisa pokok dan riwayat setoran, lalu simpan.
+     * Sama seperti status kelompok: "menunggak" berarti sudah menyetor
+     * sebagian tapi pokoknya belum lunas.
      */
     public function segarkanStatus(): void
     {
@@ -209,7 +242,7 @@ class Pinjaman extends Model
 
         $status = match (true) {
             $this->sisa_pokok <= 0 => self::STATUS_LUNAS,
-            $this->tanggal_jatuh_tempo->isPast() => self::STATUS_MENUNGGAK,
+            $this->pembayaran->isNotEmpty() => self::STATUS_MENUNGGAK,
             default => self::STATUS_BELUM_BAYAR,
         };
 

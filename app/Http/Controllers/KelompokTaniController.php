@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\KelompokTani;
 use App\Models\LogAktivitas;
 use App\Models\Pinjaman;
+use App\Services\SetoranPinjaman;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -54,7 +55,7 @@ class KelompokTaniController extends Controller
     public function show(KelompokTani $kelompok): View
     {
         return view('kelompok.show', [
-            'kelompok' => $kelompok,
+            'kelompok' => $kelompok->load('pinjaman.pembayaran'),
         ]);
     }
 
@@ -70,10 +71,9 @@ class KelompokTaniController extends Controller
         return view('kelompok.transaksi', [
             'kelompok' => $kelompok,
             'daftarPinjaman' => $pinjaman,
-            'totalPinjaman' => $kelompok->pinjaman()->sum('jumlah_pinjaman'),
-            'totalBunga' => $kelompok->pinjaman()
-                ->join('pembayaran_pinjaman', 'pinjaman.id', '=', 'pembayaran_pinjaman.pinjaman_id')
-                ->sum('pembayaran_pinjaman.bunga_nominal'),
+            // Hanya kewajiban yang belum terbayar: sisa pokok dan bunga terhutang hari ini.
+            'totalPinjaman' => $kelompok->load('pinjaman.pembayaran')->total_pinjaman,
+            'totalBunga' => (new SetoranPinjaman($kelompok))->totalBungaTerhutang(),
         ]);
     }
 

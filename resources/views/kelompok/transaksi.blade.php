@@ -1,6 +1,6 @@
 <x-app-layout title="Transaksi Kelompok Tani">
-    <x-page-header judul="Informasi Kelompok Tani"
-                   :deskripsi="$kelompok->nama_kelompok"
+    <x-page-header :judul="$kelompok->nama_kelompok"
+                   deskripsi="Riwayat pinjaman kelompok tani."
                    :kembali="route('kelompok.index')">
         <x-slot:aksi>
             @can('kelola')
@@ -19,8 +19,8 @@
     @include('kelompok._tabs', ['kelompok' => $kelompok, 'aktif' => 'transaksi'])
 
     <div class="mb-6 grid gap-4 sm:grid-cols-2">
-        <x-stat-card label="Total Pinjaman Kelompok Tani" :nilai="rupiah($totalPinjaman)" ikon="bank" />
-        <x-stat-card label="Total Bunga Pinjaman Dibayar" :nilai="rupiah($totalBunga)" ikon="persen" warna="kuning" />
+        <x-stat-card label="Total Pinjaman Kelompok Tani (Belum Terbayar)" :nilai="rupiah($totalPinjaman)" ikon="bank" />
+        <x-stat-card label="Total Bunga Pinjaman (Belum Terbayar)" :nilai="rupiah($totalBunga)" ikon="persen" warna="kuning" />
     </div>
 
     <div class="card overflow-hidden">

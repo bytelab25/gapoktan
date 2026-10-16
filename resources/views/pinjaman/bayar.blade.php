@@ -10,7 +10,7 @@
 <x-app-layout title="Bayar Pinjaman">
     <x-page-header judul="Bayar Pinjaman"
                    :deskripsi="$kelompok->nama_kelompok . ' — ' . $kelompok->kode"
-                   :kembali="route('pembayaran.pilih')" />
+                   :kembali="route('pinjaman.kelompok', $kelompok)" />
 
     <div x-data="{
              tanggal: '{{ old('tanggal', now()->format('Y-m-d')) }}',
@@ -32,6 +32,9 @@
              },
              get terpakai() { return this.alokasi.reduce((jumlah, item) => jumlah + item.total, 0) },
              get kelebihan() { return Math.max(0, (this.jumlah || 0) - Math.ceil(this.terpakai)) },
+             get bungaDibayar() { return this.alokasi.reduce((jumlah, item) => jumlah + item.bunga, 0) },
+             get pokokDibayar() { return this.alokasi.reduce((jumlah, item) => jumlah + item.pokok, 0) },
+             get sisaSetelahBayar() { return Math.max(0, this.totalPelunasan - this.terpakai) },
          }"
          class="space-y-6">
 
@@ -213,18 +216,27 @@
                 </div>
             </div>
 
+            {{-- Ringkasan mengikuti nominal yang sedang diketik. --}}
             <div class="mt-6 space-y-3 border-t border-slate-200 pt-5 text-sm">
                 <div class="flex items-center justify-between">
-                    <span class="text-slate-500">Bunga Terhutang</span>
-                    <span class="font-semibold text-warn-700">{{ rupiah($totalBunga) }}</span>
+                    <span class="text-slate-500">Total Tagihan</span>
+                    <span class="font-semibold text-slate-900">{{ rupiah($totalPelunasan) }}</span>
                 </div>
                 <div class="flex items-center justify-between">
-                    <span class="text-slate-500">Sisa Pokok Semua Pinjaman</span>
-                    <span class="font-semibold text-slate-900">{{ rupiah($totalSisaPokok) }}</span>
+                    <span class="text-slate-500">Bayar Bunga</span>
+                    <span class="font-semibold text-warn-700" x-text="rupiah(bungaDibayar)">Rp 0</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500">Bayar Pinjaman Pokok</span>
+                    <span class="font-semibold text-slate-900" x-text="rupiah(pokokDibayar)">Rp 0</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500">Sisa Pinjaman Semua</span>
+                    <span class="font-semibold text-slate-900" x-text="rupiah(sisaSetelahBayar)">{{ rupiah($totalPelunasan) }}</span>
                 </div>
                 <div class="flex items-center justify-between border-t border-slate-100 pt-3">
-                    <span class="font-semibold text-slate-700">Total Pelunasan</span>
-                    <span class="text-xl font-bold text-brand-600">{{ rupiah($totalPelunasan) }}</span>
+                    <span class="font-semibold text-slate-700">Total Bayar</span>
+                    <span class="text-xl font-bold text-brand-600" x-text="rupiah(jumlah || 0)">Rp 0</span>
                 </div>
                 <p x-show="kelebihan > 0" x-cloak class="rounded-lg bg-danger-50 px-3 py-2 text-xs text-danger-700">
                     Setoran melebihi tagihan sebesar <span x-text="rupiah(kelebihan)"></span>.

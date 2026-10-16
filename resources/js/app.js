@@ -78,6 +78,16 @@ window.konfirmasiAksi = (formulir, judul, pesan, tombol = 'Lanjutkan') => {
     return false;
 };
 
+/**
+ * Dipanggil dari form keluar di sidebar dan menu profil.
+ */
+window.konfirmasiKeluar = (formulir) => window.konfirmasiAksi(
+    formulir,
+    'Keluar dari sistem?',
+    'Sesi Anda akan diakhiri. Anda perlu login lagi untuk masuk.',
+    'Ya, keluar',
+);
+
 function tampilkanFlash() {
     const { sukses, gagal } = document.body.dataset;
 

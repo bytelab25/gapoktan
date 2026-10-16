@@ -80,7 +80,7 @@
                 @can('lihat-pengaturan')
                     <a href="{{ route('pengaturan.edit') }}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Pengaturan Sistem</a>
                 @endcan
-                <form method="POST" action="{{ route('logout') }}" class="border-t border-slate-100">
+                <form method="POST" action="{{ route('logout') }}" class="border-t border-slate-100" onsubmit="return konfirmasiKeluar(this)">
                     @csrf
                     <button type="submit" class="block w-full px-4 py-2.5 text-left text-sm text-danger-600 hover:bg-danger-50">
                         Keluar

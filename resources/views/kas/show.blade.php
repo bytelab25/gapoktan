@@ -57,9 +57,17 @@
             <div class="mt-8 flex items-start gap-3 rounded-lg bg-brand-50 p-4 text-sm text-brand-800">
                 <x-icon name="peringatan" class="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
                 <span>
-                    Transaksi ini dibuat otomatis dari pencairan pinjaman
-                    <a href="{{ route('pinjaman.show', $transaksi->pinjaman) }}" class="font-semibold underline">{{ $transaksi->pinjaman->kode }}</a>.
-                    Ubah data pinjamannya bila nominalnya salah.
+                    @if ($transaksi->pinjaman)
+                        Transaksi ini dibuat otomatis dari pencairan pinjaman
+                        <a href="{{ route('pinjaman.show', $transaksi->pinjaman) }}" class="font-semibold underline">{{ $transaksi->pinjaman->kode }}</a>.
+                        Ubah data pinjamannya bila nominalnya salah.
+                    @else
+                        Transaksi ini dibuat otomatis dari setoran {{ $transaksi->kode_setoran }}
+                        @if ($transaksi->kelompokTani)
+                            <a href="{{ route('pinjaman.kelompok', $transaksi->kelompokTani) }}" class="font-semibold underline">{{ $transaksi->kelompokTani->nama_kelompok }}</a>.
+                        @endif
+                        Sunting setorannya di riwayat pembayaran bila nominalnya salah.
+                    @endif
                 </span>
             </div>
         @else

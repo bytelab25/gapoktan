@@ -30,6 +30,9 @@ Route::middleware('auth')->group(function () {
         Route::get('pembayaran', [PembayaranPinjamanController::class, 'pilih'])->name('pembayaran.pilih');
         Route::get('kelompok/{kelompok}/bayar', [PembayaranPinjamanController::class, 'create'])->name('pembayaran.create');
         Route::post('kelompok/{kelompok}/bayar', [PembayaranPinjamanController::class, 'store'])->name('pembayaran.store');
+        Route::get('pembayaran/{pembayaran}/edit', [PembayaranPinjamanController::class, 'edit'])->name('pembayaran.edit');
+        Route::put('pembayaran/{pembayaran}', [PembayaranPinjamanController::class, 'update'])->name('pembayaran.update');
+        Route::delete('pembayaran/{pembayaran}', [PembayaranPinjamanController::class, 'destroy'])->name('pembayaran.destroy');
 
         Route::resource('kelompok', KelompokTaniController::class)->except(['index', 'show']);
         Route::resource('kas', KasController::class)->except(['index', 'show'])->parameters(['kas' => 'kas']);
@@ -81,6 +84,7 @@ Route::middleware('auth')->group(function () {
     Route::get('kas/{kas}/faktur', [KasController::class, 'faktur'])->name('kas.faktur');
     Route::resource('kas', KasController::class)->only(['index', 'show'])->parameters(['kas' => 'kas']);
 
+    Route::get('pinjaman/kelompok/{kelompok}', [PinjamanController::class, 'kelompok'])->name('pinjaman.kelompok');
     Route::get('pinjaman/{pinjaman}/faktur', [PinjamanController::class, 'faktur'])->name('pinjaman.faktur');
     Route::resource('pinjaman', PinjamanController::class)->only(['index', 'show']);
     Route::get('pembayaran/{pembayaran}/faktur', [PembayaranPinjamanController::class, 'faktur'])->name('pembayaran.faktur');

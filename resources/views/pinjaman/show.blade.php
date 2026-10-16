@@ -1,7 +1,7 @@
 <x-app-layout title="Detail Pinjaman">
     <x-page-header :judul="$pinjaman->kelompokTani->nama_kelompok"
                    :deskripsi="'Pinjaman ' . $pinjaman->kode"
-                   :kembali="route('pinjaman.index')">
+                   :kembali="route('pinjaman.kelompok', $pinjaman->kelompok_tani_id)">
         <x-slot:aksi>
             <a href="{{ route('pinjaman.faktur', $pinjaman) }}" class="btn-ghost">
                 <x-icon name="nota" class="h-4 w-4" />
@@ -61,11 +61,22 @@
             </dl>
 
             @can('kelola')
-                <div class="mt-6 flex flex-wrap justify-end gap-3">
-                    <x-tombol-hapus :aksi="route('pinjaman.destroy', $pinjaman)"
-                                    :pesan="'Pinjaman ' . $pinjaman->kode . ' akan dihapus beserta baris kas dan kontribusi dana talangannya.'" />
-                    <a href="{{ route('pinjaman.edit', $pinjaman) }}" class="btn-primary">Sunting</a>
-                </div>
+                @if ($pinjaman->bisaDiubah())
+                    <div class="mt-6 flex flex-wrap justify-end gap-3">
+                        <x-tombol-hapus :aksi="route('pinjaman.destroy', $pinjaman)"
+                                        :pesan="'Pinjaman ' . $pinjaman->kode . ' akan dihapus beserta baris kas dan kontribusi dana talangannya.'" />
+                        <a href="{{ route('pinjaman.edit', $pinjaman) }}" class="btn-primary">Sunting</a>
+                    </div>
+                @else
+                    <div class="mt-6 flex items-start gap-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+                        <x-icon name="peringatan" class="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+                        <span>
+                            Pinjaman sudah punya transaksi pembayaran, jadi tidak bisa disunting atau dihapus.
+                            Kelola setorannya di
+                            <a href="{{ route('pinjaman.kelompok', $pinjaman->kelompok_tani_id) }}" class="font-semibold text-brand-700 underline">riwayat transaksi kelompok</a>.
+                        </span>
+                    </div>
+                @endif
             @endcan
         </div>
 

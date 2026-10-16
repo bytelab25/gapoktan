@@ -123,6 +123,7 @@ class DatabaseSeeder extends Seeder
                 'kelompok_tani_id' => $kt->id,
                 'tanggal_transaksi' => $tanggal,
                 'tanggal_jatuh_tempo' => $tanggal->copy()->addMonths(Pinjaman::BULAN_PER_TERMIN),
+                'tanggal_jatuh_tempo_awal' => $tanggal->copy()->addMonths(Pinjaman::BULAN_PER_TERMIN),
                 'termin' => 1,
                 'jumlah_pinjaman' => $jumlah,
                 'potongan_persen' => $persenPotongan,

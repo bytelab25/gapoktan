@@ -171,6 +171,7 @@ class KasController extends Controller
 
     private function pesanOtomatis(): string
     {
-        return 'Transaksi ini dibuat otomatis dari pencairan pinjaman. Ubah data pinjamannya bila nominalnya salah.';
+        return 'Transaksi ini dibuat otomatis dari pencairan atau setoran pinjaman. '
+            .'Ubah lewat menu Pinjaman Kelompok bila nominalnya salah.';
     }
 }

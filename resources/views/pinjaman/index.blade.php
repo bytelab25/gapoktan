@@ -17,6 +17,7 @@
 
     <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <x-stat-card label="Total Pinjaman Pokok" :nilai="rupiah($totalPokok)" ikon="bank" />
+        <x-stat-card label="Sisa Pokok Belum Terbayar" :nilai="rupiah($totalSisaPokok)" ikon="keluar-uang" warna="merah" />
     </div>
 
     <div class="card overflow-hidden">
@@ -24,14 +25,11 @@
             <h2 class="text-lg font-semibold text-slate-900">Daftar Pinjaman</h2>
 
             <form method="GET" class="flex flex-wrap items-center gap-3">
-                <select name="kelompok" onchange="this.form.submit()" class="input-field w-48 py-2 text-sm">
-                    <option value="">Semua Kelompok</option>
-                    @foreach ($daftarKelompok as $kelompok)
-                        <option value="{{ $kelompok->id }}" @selected(request('kelompok') == $kelompok->id)>
-                            {{ $kelompok->nama_kelompok }}
-                        </option>
-                    @endforeach
-                </select>
+                <div class="relative">
+                    <x-icon name="cari" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input type="search" name="cari" value="{{ request('cari') }}" placeholder="Cari kelompok tani"
+                           class="input-field w-56 py-2 pl-9 text-sm">
+                </div>
 
                 <select name="status" onchange="this.form.submit()" class="input-field w-44 py-2 text-sm">
                     <option value="">Semua Status</option>
@@ -47,35 +45,39 @@
                 <thead class="table-head">
                     <tr>
                         <th class="px-6 py-3.5 text-left">Nama Kelompok</th>
-                        <th class="px-6 py-3.5 text-left">ID Pinjaman</th>
+                        <th class="px-6 py-3.5 text-left">Jumlah Transaksi</th>
                         <th class="px-6 py-3.5 text-right">Pinjaman Pokok</th>
                         <th class="px-6 py-3.5 text-right">Sisa Pokok</th>
-                        <th class="px-6 py-3.5 text-left">Jatuh Tempo</th>
                         <th class="px-6 py-3.5 text-left">Status Pelunasan</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    @forelse ($daftarPinjaman as $pinjaman)
+                    @forelse ($daftarKelompok as $kelompok)
+                        @php
+                            $aktif = $kelompok->pinjaman->where('status', '!=', \App\Models\Pinjaman::STATUS_LUNAS)->count();
+                        @endphp
                         <tr class="cursor-pointer hover:bg-slate-50/60"
-                            onclick="window.location='{{ route('pinjaman.show', $pinjaman) }}'">
-                            <td class="px-6 py-4 font-semibold text-slate-900">
-                                {{ $pinjaman->kelompokTani->nama_kelompok }}
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4 font-medium text-brand-700">{{ $pinjaman->kode }}</td>
-                            <td class="whitespace-nowrap px-6 py-4 text-right text-slate-600">
-                                {{ rupiah($pinjaman->jumlah_pinjaman) }}
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4 text-right font-semibold text-slate-900">
-                                {{ rupiah($pinjaman->sisa_pokok) }}
+                            onclick="window.location='{{ route('pinjaman.kelompok', $kelompok) }}'">
+                            <td class="px-6 py-4">
+                                <span class="font-semibold text-slate-900">{{ $kelompok->nama_kelompok }}</span>
+                                <span class="block text-xs text-slate-500">{{ $kelompok->kode }} · {{ $kelompok->nama_ketua }}</span>
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-slate-600">
-                                {{ tanggal_id($pinjaman->tanggal_jatuh_tempo) }}
-                                <span class="block text-xs text-slate-400">Termin {{ $pinjaman->termin }}</span>
+                                {{ $kelompok->pinjaman->count() }} pinjaman
+                                <span class="block text-xs text-slate-400">
+                                    {{ $aktif ? $aktif . ' masih berjalan' : 'semua lunas' }}
+                                </span>
                             </td>
-                            <td class="px-6 py-4"><x-status-badge :status="$pinjaman->status" /></td>
+                            <td class="whitespace-nowrap px-6 py-4 text-right text-slate-600">
+                                {{ rupiah($kelompok->pinjaman->sum('jumlah_pinjaman')) }}
+                            </td>
+                            <td class="whitespace-nowrap px-6 py-4 text-right font-semibold text-slate-900">
+                                {{ rupiah($kelompok->total_pinjaman) }}
+                            </td>
+                            <td class="px-6 py-4"><x-status-badge :status="$kelompok->status_pinjaman" /></td>
                         </tr>
                     @empty
-                        <x-empty-state kolom="6" pesan="Belum ada pinjaman tercatat.">
+                        <x-empty-state kolom="5" pesan="Belum ada kelompok tani yang memiliki pinjaman.">
                             <x-slot:aksi>
                                 @can('kelola')
                                     <a href="{{ route('pinjaman.create') }}" class="btn-primary">Buat Pinjaman</a>
@@ -87,6 +89,6 @@
             </table>
         </div>
 
-        <x-tabel-kaki :paginator="$daftarPinjaman" />
+        <x-tabel-kaki :paginator="$daftarKelompok" />
     </div>
 </x-app-layout>

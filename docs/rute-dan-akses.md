@@ -7,8 +7,8 @@ Sumber acuan: [`routes/web.php`](../routes/web.php), [`routes/auth.php`](../rout
 | Gate | Role yang diperbolehkan | Penggunaan |
 | --- | --- | --- |
 | `kelola` | `sekretaris`, `bendahara` | Tulis kas, pinjaman, setoran, talangan, kelompok, kategori |
-| `kelola-pengguna` | `sekretaris`, `bendahara` | Membuat/mengubah/menghapus akun |
-| `lihat-pengaturan` | `sekretaris`, `bendahara`, `ketua` | Baca persentase |
+| `kelola-pengguna` | `sekretaris`, `bendahara`, `ketua` | Membuat/mengubah/menghapus akun |
+| `lihat-pengaturan` | Semua role | Baca persentase |
 | `kelola-pengaturan` | `ketua` | Ubah persentase |
 | `lihat-pengurus` | Semua role valid selain `user` | Daftar/detail Pengguna, Kelompok, transaksi kelompok |
 
@@ -62,7 +62,11 @@ Pola untuk setiap prefix:
 | GET | `/kelompok/{kelompok}/transaksi` | `kelompok.transaksi` | `lihat-pengurus` |
 | GET | `/pembayaran` | `pembayaran.pilih` | `kelola` |
 | GET | `/kelompok/{kelompok}/bayar` | `pembayaran.create` | `kelola` |
-| POST | `/kelompok/{kelompok}/bayar` | `pembayaran.store` | `kelola` |
+| POST | `/kelompok/{kelompok}/bayar` | `pembayaran.store` | `kelola`; redirect ke `pinjaman.kelompok`, tanpa membuka faktur |
+| GET | `/pembayaran/{pembayaran}/edit` | `pembayaran.edit` | `kelola`; satu setoran (`kode_setoran`) |
+| PUT | `/pembayaran/{pembayaran}` | `pembayaran.update` | `kelola`; memutar ulang setoran kelompok |
+| DELETE | `/pembayaran/{pembayaran}` | `pembayaran.destroy` | `kelola`; ikut menghapus kas masuknya |
+| GET | `/pinjaman/kelompok/{kelompok}` | `pinjaman.kelompok` | Auth; daftar pinjaman dan setoran satu kelompok |
 | GET | `/pembayaran/{pembayaran}/faktur` | `pembayaran.faktur` | Auth |
 | GET | `/kas/{kas}/faktur` | `kas.faktur` | Auth |
 | GET | `/pinjaman/{pinjaman}/faktur` | `pinjaman.faktur` | Auth |
@@ -81,7 +85,8 @@ Pola untuk setiap prefix:
 | Pengguna | `cari` nama/username, `role` |
 | Kelompok | `cari` nama kelompok/ketua |
 | Kas | `dari`, `sampai`, `jenis=masuk\|keluar` |
-| Pinjaman | `kelompok` ID, `status=belum_bayar\|menunggak\|lunas` |
+| Pinjaman (daftar per kelompok) | `cari` nama kelompok, `status=belum_bayar\|menunggak\|lunas` (status kelompok) |
+| Detail pinjaman kelompok | `jenis=pinjaman\|setoran` |
 | Talangan | `kelompok` ID, `jenis=masuk\|keluar` |
 | Log | `dari`, `sampai`, `tindakan=input\|sunting\|hapus` |
 | Laporan dan unduh | `jenis=kas\|pinjaman\|dana_talangan\|akhir_tahun`, `dari`, `sampai`, `tahun` |
@@ -94,7 +99,7 @@ Contoh URL setelah login:
 
 ```text
 /kas?jenis=masuk&per_halaman=25
-/pinjaman?kelompok=1&status=belum_bayar
+/pinjaman?status=menunggak&cari=sekar
 /laporan?jenis=kas&dari=2026-01-01&sampai=2026-12-31
 /laporan/unduh?jenis=akhir_tahun&tahun=2026
 ```

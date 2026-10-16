@@ -43,7 +43,7 @@
     </nav>
 
     <div class="border-t border-slate-200 p-4">
-        <form method="POST" action="{{ route('logout') }}">
+        <form method="POST" action="{{ route('logout') }}" onsubmit="return konfirmasiKeluar(this)">
             @csrf
             <button type="submit"
                     class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition hover:bg-danger-50 hover:text-danger-600">

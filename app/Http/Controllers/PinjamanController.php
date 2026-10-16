@@ -7,8 +7,10 @@ use App\Models\LogAktivitas;
 use App\Models\Pengaturan;
 use App\Models\Pinjaman;
 use App\Services\PencairanPinjaman;
+use App\Services\SetoranPinjaman;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -16,21 +18,90 @@ use Illuminate\View\View;
 
 class PinjamanController extends Controller
 {
+    /**
+     * Daftar dibuat per kelompok tani, bukan per transaksi: setiap kelompok
+     * yang pernah meminjam tampil satu baris, termasuk yang sudah lunas.
+     */
     public function index(Request $request): View
     {
-        $pinjaman = Pinjaman::query()
-            ->with(['kelompokTani', 'pembayaran'])
-            ->when($request->string('status')->trim()->value(), fn ($query, $status) => $query->where('status', $status))
-            ->when($request->integer('kelompok'), fn ($query, $id) => $query->where('kelompok_tani_id', $id))
-            ->latest('tanggal_transaksi')
-            ->latest('id')
-            ->paginate($request->integer('per_halaman', 10))
-            ->withQueryString();
+        $status = $request->string('status')->trim()->value();
+        $cari = $request->string('cari')->trim()->value();
+        $perHalaman = $request->integer('per_halaman', 10) ?: 10;
+
+        $daftar = KelompokTani::query()
+            ->whereHas('pinjaman')
+            ->with('pinjaman.pembayaran')
+            ->when($cari, fn ($query) => $query->where('nama_kelompok', 'like', "%{$cari}%"))
+            ->orderBy('nama_kelompok')
+            ->get()
+            ->when($status, fn ($daftar) => $daftar->filter(fn (KelompokTani $kelompok) => $kelompok->status_pinjaman === $status))
+            ->values();
+
+        $halaman = LengthAwarePaginator::resolveCurrentPage();
 
         return view('pinjaman.index', [
-            'daftarPinjaman' => $pinjaman,
-            'daftarKelompok' => KelompokTani::orderBy('nama_kelompok')->get(),
+            'daftarKelompok' => (new LengthAwarePaginator(
+                $daftar->forPage($halaman, $perHalaman)->values(),
+                $daftar->count(),
+                $perHalaman,
+                $halaman,
+                ['path' => $request->url(), 'query' => $request->query()],
+            )),
             'totalPokok' => Pinjaman::sum('jumlah_pinjaman'),
+            'totalSisaPokok' => Pinjaman::with('pembayaran')->where('status', '!=', Pinjaman::STATUS_LUNAS)
+                ->get()->sum(fn (Pinjaman $pinjaman) => $pinjaman->sisa_pokok),
+        ]);
+    }
+
+    /**
+     * Detail pinjaman satu kelompok: semua pinjaman dan setorannya dalam
+     * satu daftar transaksi.
+     */
+    public function kelompok(Request $request, KelompokTani $kelompok): View
+    {
+        $kelompok->load(['pinjaman' => fn ($query) => $query->with('pembayaran')->orderBy('tanggal_transaksi')->orderBy('id')]);
+        $jenis = $request->string('jenis')->trim()->value();
+
+        $pinjaman = $kelompok->pinjaman->map(fn (Pinjaman $pinjaman) => [
+            'jenis' => 'pinjaman',
+            'tanggal' => $pinjaman->tanggal_transaksi,
+            'urutan' => $pinjaman->created_at,
+            'kode' => $pinjaman->kode,
+            'deskripsi' => $pinjaman->deskripsi,
+            'jumlah' => (float) $pinjaman->jumlah_pinjaman,
+            'pinjaman' => $pinjaman,
+        ]);
+
+        $setoran = $kelompok->pinjaman
+            ->flatMap(fn (Pinjaman $pinjaman) => $pinjaman->pembayaran->each->setRelation('pinjaman', $pinjaman))
+            ->groupBy(fn ($baris) => $baris->kode_setoran ?? $baris->kode)
+            ->map(fn ($grup, $kode) => [
+                'jenis' => 'setoran',
+                'tanggal' => $grup->first()->tanggal,
+                'urutan' => $grup->min('created_at'),
+                'kode' => $kode,
+                'deskripsi' => $grup->first()->deskripsi,
+                'jumlah' => (float) $grup->sum('total_bayar'),
+                'bunga' => (float) $grup->sum('bunga_nominal'),
+                'pokok' => (float) $grup->sum('bayar_pokok'),
+                'baris' => $grup->sortBy('id')->values(),
+            ])
+            ->values();
+
+        $layanan = new SetoranPinjaman($kelompok);
+
+        return view('pinjaman.kelompok', [
+            'jenis' => $jenis,
+            'kelompok' => $kelompok,
+            'daftarTransaksi' => (match ($jenis) {
+                'pinjaman' => $pinjaman,
+                'setoran' => $setoran,
+                default => $pinjaman->concat($setoran),
+            })->sortByDesc(fn (array $baris) => $baris['tanggal']->format('Ymd').$baris['urutan']?->format('YmdHis'))->values(),
+            'totalPinjaman' => (float) $kelompok->pinjaman->sum('jumlah_pinjaman'),
+            'totalSisaPokok' => $kelompok->total_pinjaman,
+            'totalBunga' => $layanan->totalBungaTerhutang(),
+            'totalSetoran' => (float) $setoran->sum('jumlah'),
         ]);
     }
 
@@ -65,6 +136,7 @@ class PinjamanController extends Controller
             $pinjaman = Pinjaman::create([
                 ...$data,
                 'kode' => $this->kodeBerikutnya(),
+                'tanggal_jatuh_tempo_awal' => $data['tanggal_jatuh_tempo'],
                 'termin' => 1,
                 'potongan_persen' => $persenPotongan,
                 'potongan_talangan_persen' => $persenTalangan,
@@ -118,21 +190,32 @@ class PinjamanController extends Controller
         ]);
     }
 
-    public function edit(Pinjaman $pinjaman): View
+    public function edit(Pinjaman $pinjaman): View|RedirectResponse
     {
+        if (! $pinjaman->bisaDiubah()) {
+            return redirect()->route('pinjaman.show', $pinjaman)->with('gagal', $this->pesanTerkunci());
+        }
+
         return view('pinjaman.edit', [...$this->dataForm(), 'pinjaman' => $pinjaman]);
     }
 
     public function update(Request $request, Pinjaman $pinjaman): RedirectResponse
     {
+        if (! $pinjaman->bisaDiubah()) {
+            return redirect()->route('pinjaman.show', $pinjaman)->with('gagal', $this->pesanTerkunci());
+        }
+
         $data = $this->validasi($request);
 
         // Persentase tetap memakai snapshot saat pinjaman dibuat supaya nilai
         // yang sudah dibayar kelompok tidak berubah di belakang layar.
         $potongan = round((float) $data['jumlah_pinjaman'] * (float) $pinjaman->potongan_persen / 100, 2);
         DB::transaction(function () use ($pinjaman, $data, $potongan, $request) {
+            // Belum ada setoran, jadi termin kembali ke awal dari jatuh tempo baru.
             $pinjaman->update([
                 ...$data,
+                'tanggal_jatuh_tempo_awal' => $data['tanggal_jatuh_tempo'],
+                'termin' => 1,
                 'potongan_nominal' => $potongan,
                 'jumlah_diterima' => (float) $data['jumlah_pinjaman'] - $potongan,
             ]);
@@ -154,12 +237,13 @@ class PinjamanController extends Controller
 
     public function destroy(Pinjaman $pinjaman): RedirectResponse
     {
-        if ($pinjaman->pembayaran()->exists()) {
-            return back()->with('gagal', 'Pinjaman tidak bisa dihapus karena sudah punya riwayat pembayaran.');
+        if (! $pinjaman->bisaDiubah()) {
+            return back()->with('gagal', $this->pesanTerkunci());
         }
 
         $kode = $pinjaman->kode;
-        $nama = $pinjaman->kelompokTani->nama_kelompok;
+        $kelompok = $pinjaman->kelompokTani;
+        $nama = $kelompok->nama_kelompok;
 
         DB::transaction(function () use ($pinjaman) {
             // Baris kas dan talangan turunan ikut dibersihkan.
@@ -171,8 +255,14 @@ class PinjamanController extends Controller
         LogAktivitas::catat(LogAktivitas::TINDAKAN_HAPUS, "Menghapus pinjaman {$nama}", $kode);
 
         return redirect()
-            ->route('pinjaman.index')
+            ->route($kelompok->pinjaman()->exists() ? 'pinjaman.kelompok' : 'pinjaman.index', $kelompok)
             ->with('sukses', 'Pinjaman berhasil dihapus beserta transaksi turunannya.');
+    }
+
+    private function pesanTerkunci(): string
+    {
+        return 'Pinjaman yang sudah punya transaksi pembayaran tidak bisa disunting atau dihapus. '
+            .'Hapus dulu setorannya di riwayat pembayaran bila datanya keliru.';
     }
 
     /**

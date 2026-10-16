@@ -34,8 +34,7 @@
             @endforeach
         </select>
         <p class="mt-1.5 text-xs text-slate-500">
-            Sekretaris dan bendahara mengelola data operasional serta akun, dan hanya melihat pengaturan.
-            Ketua melihat data operasional dan menyunting pengaturan sistem. Pengguna hanya bisa melihat.
+            Sekretaris dan Bendahara bertugas mengelola data transaksi operasional serta akun pengguna (hanya dapat melihat Pengaturan Sistem). Ketua Gapoktan memiliki hak akses penuh untuk mengawasi operasional, mengelola akun, serta mengubah Pengaturan Sistem. Sementara Pengguna hanya memiliki hak akses untuk melihat data.
         </p>
         <x-input-error :messages="$errors->get('role')" class="mt-2" />
     </div>
@@ -54,14 +53,12 @@
                 <span class="font-normal text-slate-400">(kosongkan bila tidak diganti)</span>
             @endif
         </label>
-        <input id="password" name="password" type="password" autocomplete="new-password"
-               placeholder="Masukkan Password" @required(! $sedangSunting) class="input-field">
+        <x-input-password name="password" placeholder="Masukkan Password" :required="! $sedangSunting" />
         <x-input-error :messages="$errors->get('password')" class="mt-2" />
     </div>
 
     <div>
         <label for="password_confirmation" class="label-field">Konfirmasi Password</label>
-        <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password"
-               placeholder="Ulangi Password" @required(! $sedangSunting) class="input-field">
+        <x-input-password name="password_confirmation" placeholder="Ulangi Password" :required="! $sedangSunting" />
     </div>
 </div>
