@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,6 +37,15 @@ class PembayaranPinjaman extends Model
         ];
     }
 
+    /**
+     * Baris pembayaran dibuat ulang setiap kali setoran kelompok dihitung
+     * ulang, jadi ID-nya berubah. Kode BP-... tetap, maka URL memakai kode.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'kode';
+    }
+
     public function pinjaman(): BelongsTo
     {
         return $this->belongsTo(Pinjaman::class);
@@ -50,7 +60,7 @@ class PembayaranPinjaman extends Model
      * Baris-baris lain dari setoran yang sama, termasuk baris ini sendiri.
      * Satu setoran bisa terpecah ke beberapa pinjaman karena alokasi FIFO.
      */
-    public function satuSetoran(): \Illuminate\Database\Eloquent\Collection
+    public function satuSetoran(): Collection
     {
         return static::with('pinjaman.kelompokTani')
             ->when(

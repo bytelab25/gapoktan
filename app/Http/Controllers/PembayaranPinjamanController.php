@@ -55,26 +55,32 @@ class PembayaranPinjamanController extends Controller
 
         $tanggal = Carbon::parse($data['tanggal']);
         $layanan = new SetoranPinjaman($kelompok);
-        $maksimal = $layanan->totalPelunasan($tanggal);
+        $jumlah = (float) $data['jumlah'];
 
-        if ($maksimal < 0.01) {
-            $tertahan = $layanan->belumDicairkan($tanggal);
+        // Tagihan hari ini hanya tepat bila tidak ada setoran yang lebih baru.
+        // Setoran bertanggal mundur divalidasi saat seluruh riwayat diputar ulang.
+        if (! $layanan->adaSetoranSesudah($tanggal)) {
+            $maksimal = $layanan->totalPelunasan($tanggal);
 
-            return back()->with('gagal', $tertahan->isEmpty()
-                ? 'Kelompok ini tidak punya tagihan yang perlu dibayar.'
-                : 'Tanggal setoran mendahului pencairan pinjaman. Paling cepat '
-                    .tanggal_id($tertahan->min('tanggal_transaksi'), 'd F Y').'.');
+            if ($maksimal < 0.01) {
+                $tertahan = $layanan->belumDicairkan($tanggal);
+
+                return back()->withInput()->with('gagal', $tertahan->isEmpty()
+                    ? 'Kelompok ini tidak punya tagihan yang perlu dibayar.'
+                    : 'Tanggal setoran mendahului pencairan pinjaman. Paling cepat '
+                        .tanggal_id($tertahan->min('tanggal_transaksi'), 'd F Y').'.');
+            }
+
+            // Setoran selalu rupiah bulat; selisih di bawah Rp 1 akibat pembulatan
+            // tagihan ke atas dipangkas, selebihnya dianggap kelebihan bayar.
+            if ($jumlah - $maksimal >= 1) {
+                throw ValidationException::withMessages([
+                    'jumlah' => 'Setoran melebihi total tagihan '.rupiah(ceil($maksimal)).'.',
+                ]);
+            }
         }
 
-        // Setoran selalu rupiah bulat; selisih di bawah Rp 1 akibat pembulatan
-        // tagihan ke atas dipangkas, selebihnya dianggap kelebihan bayar.
-        if ((float) $data['jumlah'] - $maksimal >= 1) {
-            throw ValidationException::withMessages([
-                'jumlah' => 'Setoran melebihi total tagihan '.rupiah(ceil($maksimal)).'.',
-            ]);
-        }
-
-        $baris = $layanan->catat($tanggal, min((float) $data['jumlah'], $maksimal), $data['deskripsi'] ?? null, $request->user());
+        $baris = $layanan->catat($tanggal, $jumlah, $data['deskripsi'] ?? null, $request->user());
 
         if ($baris->isEmpty()) {
             return back()->with('gagal', 'Tidak ada tagihan yang bisa dialokasikan untuk setoran ini.');

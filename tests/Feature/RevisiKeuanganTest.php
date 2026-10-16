@@ -361,6 +361,102 @@ class RevisiKeuanganTest extends TestCase
             ->assertViewHas('totalBunga', fn ($nilai) => (float) $nilai === 0.0);
     }
 
+    public function test_url_setoran_tetap_sama_setelah_disunting(): void
+    {
+        $pinjaman = $this->pinjaman();
+        $this->actingAs($this->pengguna())->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '40000',
+        ]);
+        $url = route('pembayaran.faktur', PembayaranPinjaman::firstOrFail());
+
+        $this->put(route('pembayaran.update', PembayaranPinjaman::firstOrFail()), [
+            'tanggal' => '2026-10-08', 'jumlah' => '50000',
+        ])->assertSessionHasNoErrors();
+
+        $this->get($url)->assertOk()->assertSee('50.000');
+    }
+
+    public function test_setoran_bertanggal_mundur_teralokasi_urut_tanggal(): void
+    {
+        $pinjaman = $this->pinjaman();
+        $this->actingAs($this->pengguna())->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '40000',
+        ])->assertSessionHasNoErrors();
+
+        // Setoran September dicatat belakangan: bunga 1 bulan 20.000 + pokok 80.000.
+        $this->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-09-08', 'jumlah' => '100000',
+        ])->assertSessionHasNoErrors();
+
+        $september = PembayaranPinjaman::whereDate('tanggal', '2026-09-08')->firstOrFail();
+        $oktober = PembayaranPinjaman::whereDate('tanggal', '2026-10-08')->firstOrFail();
+        $this->assertSame('20000.00', $september->bunga_nominal);
+        $this->assertSame('80000.00', $september->bayar_pokok);
+        // Oktober kini menanggung bunga 2% dari 920.000, sisanya memotong pokok.
+        $this->assertSame('18400.00', $oktober->bunga_nominal);
+        $this->assertSame('21600.00', $oktober->bayar_pokok);
+        $this->assertSame(2, TransaksiKas::count());
+    }
+
+    public function test_setoran_mundur_yang_membuat_setoran_lain_kelebihan_ditolak(): void
+    {
+        $pinjaman = $this->pinjaman();
+        $this->actingAs($this->pengguna())->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '1040000',
+        ]);
+
+        $this->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-09-08', 'jumlah' => '100000',
+        ])->assertSessionHasErrors('jumlah');
+
+        $this->assertSame(1, PembayaranPinjaman::count());
+        $this->assertSame(Pinjaman::STATUS_LUNAS, $pinjaman->fresh()->status);
+    }
+
+    public function test_pinjaman_baru_bertanggal_mundur_menghitung_ulang_fifo(): void
+    {
+        $baru = $this->pinjaman(['tanggal_transaksi' => '2026-09-08']);
+        $this->actingAs($this->pengguna())->post(route('pembayaran.store', $baru->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '20000',
+        ]);
+        $this->assertSame(1, $baru->pembayaran()->count());
+
+        $this->post(route('pinjaman.store'), [
+            'kelompok_tani_id' => $baru->kelompok_tani_id,
+            'tanggal_transaksi' => '2026-08-08',
+            'tanggal_jatuh_tempo' => '2026-12-08',
+            'jumlah_pinjaman' => '1000000',
+        ])->assertSessionHasNoErrors();
+
+        $lama = Pinjaman::where('id', '!=', $baru->id)->firstOrFail();
+        $this->assertSame(1, $lama->pembayaran()->count());
+        $this->assertSame(0, $baru->pembayaran()->count());
+        $this->assertSame(Pinjaman::STATUS_BELUM_BAYAR, $baru->fresh()->status);
+    }
+
+    public function test_akses_ditolak_kembali_ke_halaman_asal_dengan_pesan(): void
+    {
+        $this->actingAs($this->pengguna(User::ROLE_KETUA))
+            ->from(route('pinjaman.index'))
+            ->get(route('pinjaman.create'))
+            ->assertRedirect(route('pinjaman.index'))
+            ->assertSessionHas('gagal', fn ($pesan) => str_contains($pesan, 'Ketua Gapoktan'));
+
+        $this->from(route('pengaturan.edit'))->post(route('kas.store'))
+            ->assertRedirect(route('pengaturan.edit'))->assertSessionHas('gagal');
+    }
+
+    public function test_akses_ditolak_tanpa_halaman_asal_menampilkan_halaman_403(): void
+    {
+        $this->actingAs($this->pengguna(User::ROLE_USER))
+            ->get(route('kelompok.index'))
+            ->assertForbidden()
+            ->assertSee('Akses Ditolak')
+            ->assertSee('Ke Beranda');
+
+        $this->get('/pinjaman/999999')->assertNotFound()->assertSee('Halaman Tidak Ditemukan');
+    }
+
     private function pengguna(string $role = User::ROLE_SEKRETARIS): User
     {
         return User::factory()->create(['username' => Str::uuid()->toString(), 'role' => $role]);

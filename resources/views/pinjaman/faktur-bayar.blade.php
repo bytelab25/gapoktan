@@ -4,7 +4,7 @@
     $total = (float) $daftarBaris->sum('total_bayar');
 @endphp
 
-<x-faktur-layout title="Faktur Setoran Pinjaman" :kembali="route('pinjaman.show', $pinjamanPertama)">
+<x-faktur-layout title="Faktur Setoran Pinjaman" :kembali="route('pinjaman.kelompok', $kelompok)">
     <p class="mt-6 text-sm text-slate-500">Nomor Setoran</p>
     <p class="text-xl font-bold text-slate-900">{{ $pembayaran->kode_setoran ?? $pembayaran->kode }}</p>
 

@@ -11,7 +11,9 @@
                 <p class="text-2xl font-bold text-slate-900">{{ $kelompok->nama_kelompok }}</p>
                 <p class="mt-0.5 text-sm text-slate-500">{{ $kelompok->kode }}</p>
             </div>
-            <x-status-badge :status="$kelompok->status_pinjaman" />
+            @if ($kelompok->pinjaman->isNotEmpty())
+                <x-status-badge :status="$kelompok->status_pinjaman" />
+            @endif
         </div>
 
         <dl class="mt-2 divide-y divide-slate-100">

@@ -137,6 +137,29 @@ class SetoranPinjaman
     }
 
     /**
+     * Putar ulang setoran tanpa perubahan, mis. setelah pinjaman kelompok
+     * ditambah atau disunting dengan tanggal cair mundur.
+     */
+    public function hitungUlang(User $pencatat): void
+    {
+        $adaSetoran = PembayaranPinjaman::whereIn('pinjaman_id', $this->kelompok->pinjaman()->select('id'))->exists();
+
+        if ($adaSetoran) {
+            $this->susunUlang(fn (SupportCollection $daftar) => $daftar, $pencatat);
+        }
+    }
+
+    /**
+     * Apakah ada setoran kelompok yang bertanggal setelah tanggal ini.
+     */
+    public function adaSetoranSesudah(Carbon $tanggal): bool
+    {
+        return PembayaranPinjaman::whereIn('pinjaman_id', $this->kelompok->pinjaman()->select('id'))
+            ->whereDate('tanggal', '>', $tanggal->toDateString())
+            ->exists();
+    }
+
+    /**
      * Bunga dan alokasi FIFO bergantung pada setoran sebelumnya, jadi setiap
      * perubahan riwayat dihitung ulang dari awal: semua baris pembayaran
      * kelompok dibuang, pinjaman dikembalikan ke kondisi pencairan, lalu

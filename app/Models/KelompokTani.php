@@ -55,9 +55,9 @@ class KelompokTani extends Model
     }
 
     /**
-     * Status kelompok terhadap kewajibannya. Berbeda arti dengan status pada
-     * satu pinjaman: di sini "menunggak" berarti kelompok sudah menyetor
-     * sebagian (bunga atau pokok) tapi belum melunasi semuanya.
+     * Status kelompok terhadap kewajibannya. Sama seperti status satu
+     * pinjaman, "menunggak" berarti kelompok sudah menyetor sebagian (bunga
+     * atau pokok) tapi belum melunasi semuanya.
      *
      * - lunas       : tidak ada pinjaman aktif tersisa
      * - belum bayar : punya pinjaman aktif dan belum pernah menyetor sepeser pun

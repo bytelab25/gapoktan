@@ -150,6 +150,9 @@ class PinjamanController extends Controller
 
             (new PencairanPinjaman($pinjaman))->sinkronkan($request->user());
 
+            // Pinjaman bertanggal mundur bisa mengubah alokasi FIFO setoran lama.
+            (new SetoranPinjaman($pinjaman->kelompokTani))->hitungUlang($request->user());
+
             return $pinjaman;
         });
 
@@ -210,7 +213,9 @@ class PinjamanController extends Controller
         // Persentase tetap memakai snapshot saat pinjaman dibuat supaya nilai
         // yang sudah dibayar kelompok tidak berubah di belakang layar.
         $potongan = round((float) $data['jumlah_pinjaman'] * (float) $pinjaman->potongan_persen / 100, 2);
-        DB::transaction(function () use ($pinjaman, $data, $potongan, $request) {
+        $kelompokLama = $pinjaman->kelompokTani;
+
+        DB::transaction(function () use ($pinjaman, $data, $potongan, $request, $kelompokLama) {
             // Belum ada setoran, jadi termin kembali ke awal dari jatuh tempo baru.
             $pinjaman->update([
                 ...$data,
@@ -222,6 +227,12 @@ class PinjamanController extends Controller
 
             (new PencairanPinjaman($pinjaman))->sinkronkan($request->user());
             $pinjaman->segarkanStatus();
+
+            // Tanggal, nominal, atau kelompok yang berubah menggeser alokasi FIFO.
+            (new SetoranPinjaman($pinjaman->load('kelompokTani')->kelompokTani))->hitungUlang($request->user());
+            if ($kelompokLama->isNot($pinjaman->kelompokTani)) {
+                (new SetoranPinjaman($kelompokLama))->hitungUlang($request->user());
+            }
         });
 
         LogAktivitas::catat(
