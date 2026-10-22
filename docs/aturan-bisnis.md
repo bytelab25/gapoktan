@@ -46,7 +46,9 @@ Kas/talangan pencairan ditautkan melalui `pinjaman_id`, sehingga tidak boleh dis
 
 ## Kelayakan kelompok dan termin
 
-Kelompok boleh memiliki beberapa pinjaman. Namun, jika ada pinjaman aktif dan tidak ada pembayaran pada semua pinjaman aktif tersebut, status kelompok `belum_bayar` menghalangi pembuatan pinjaman baru. Pemeriksaan server dilakukan pada `PinjamanController::store()`.
+Kelompok boleh memiliki beberapa pinjaman. Namun, selama masih ada **satu** pinjaman aktif tanpa pembayaran sama sekali (status `belum_bayar`), kelompok tidak bisa menambah pinjaman baru, walaupun status kelompoknya sudah `menunggak`. Pemeriksaan per pinjaman ada di `KelompokTani::bisaMengajukanPinjaman()` dan dijalankan server pada `store()` serta `update()` saat pinjaman dipindah ke kelompok lain.
+
+Karena setoran dialokasikan FIFO, pinjaman yang lebih baru baru menerima uang setelah pinjaman yang lebih tua lunas. Akibatnya, kelompok dengan dua pinjaman berjalan baru bisa mengajukan pinjaman ketiga setelah pinjaman pertama lunas dan sebagian setoran masuk ke pinjaman kedua.
 
 Satu termin standar adalah empat bulan. Akad baru memiliki termin 1; form menyarankan jatuh tempo `tanggal_transaksi + 4 bulan`, tetapi pengurus dapat memilih tanggal lain. Server menyimpan tanggal pilihan dan menolak jatuh tempo sebelum pencairan.
 

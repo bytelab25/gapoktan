@@ -114,14 +114,13 @@ class PinjamanController extends Controller
     {
         $data = $this->validasi($request);
 
-        // Kelompok yang belum pernah menyetor untuk pinjaman berjalannya tidak
+        // Kelompok yang masih punya pinjaman belum dibayar sama sekali tidak
         // boleh menumpuk pinjaman baru.
         $kelompok = KelompokTani::with('pinjaman.pembayaran')->findOrFail($data['kelompok_tani_id']);
 
         if (! $kelompok->bisaMengajukanPinjaman()) {
             throw ValidationException::withMessages([
-                'kelompok_tani_id' => $kelompok->nama_kelompok.' belum menyetor apa pun untuk pinjaman '
-                    .'yang sedang berjalan, jadi belum bisa mengajukan pinjaman baru.',
+                'kelompok_tani_id' => $kelompok->pesanTidakBisaMeminjam(),
             ]);
         }
 
@@ -209,6 +208,18 @@ class PinjamanController extends Controller
         }
 
         $data = $this->validasi($request);
+
+        // Memindah pinjaman ke kelompok lain tunduk pada syarat yang sama
+        // dengan mengajukan pinjaman baru di kelompok itu.
+        if ((int) $data['kelompok_tani_id'] !== $pinjaman->kelompok_tani_id) {
+            $kelompokBaru = KelompokTani::with('pinjaman.pembayaran')->findOrFail($data['kelompok_tani_id']);
+
+            if (! $kelompokBaru->bisaMengajukanPinjaman()) {
+                throw ValidationException::withMessages([
+                    'kelompok_tani_id' => $kelompokBaru->pesanTidakBisaMeminjam(),
+                ]);
+            }
+        }
 
         // Persentase tetap memakai snapshot saat pinjaman dibuat supaya nilai
         // yang sudah dibayar kelompok tidak berubah di belakang layar.

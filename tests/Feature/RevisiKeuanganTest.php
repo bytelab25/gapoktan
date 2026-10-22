@@ -457,6 +457,44 @@ class RevisiKeuanganTest extends TestCase
         $this->get('/pinjaman/999999')->assertNotFound()->assertSee('Halaman Tidak Ditemukan');
     }
 
+    public function test_kelompok_dengan_pinjaman_belum_bayar_tidak_bisa_meminjam_walau_ada_yang_menunggak(): void
+    {
+        $lama = $this->pinjaman();
+        $baru = $this->pinjaman(['kelompok_tani_id' => $lama->kelompok_tani_id, 'tanggal_transaksi' => '2026-09-08']);
+        $kelompokLain = $this->pinjaman(['status' => Pinjaman::STATUS_LUNAS]);
+        $pinjamanLain = $this->pinjaman(['kelompok_tani_id' => $kelompokLain->kelompok_tani_id, 'status' => Pinjaman::STATUS_LUNAS]);
+
+        // Setoran FIFO hanya mengenai pinjaman lama: kelompok menunggak, pinjaman baru belum bayar.
+        $this->actingAs($this->pengguna())->post(route('pembayaran.store', $lama->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '40000',
+        ]);
+        $this->assertSame(Pinjaman::STATUS_MENUNGGAK, $lama->fresh()->status);
+        $this->assertSame(Pinjaman::STATUS_BELUM_BAYAR, $baru->fresh()->status);
+
+        $formulir = [
+            'kelompok_tani_id' => $lama->kelompok_tani_id,
+            'tanggal_transaksi' => '2026-10-08',
+            'tanggal_jatuh_tempo' => '2027-02-08',
+            'jumlah_pinjaman' => '500000',
+        ];
+        $this->post(route('pinjaman.store'), $formulir)
+            ->assertSessionHasErrors(['kelompok_tani_id' => 'Kelompok Uji masih punya pinjaman berstatus Belum Bayar ('.$baru->kode.'), jadi belum bisa mengajukan pinjaman baru.']);
+        $this->assertSame(4, Pinjaman::count());
+
+        // Memindah pinjaman lain ke kelompok itu juga ditolak.
+        $this->put(route('pinjaman.update', $pinjamanLain->fresh()), [...$formulir, 'tanggal_transaksi' => '2026-08-08'])
+            ->assertSessionHasErrors('kelompok_tani_id');
+        $this->assertSame($kelompokLain->kelompok_tani_id, $pinjamanLain->fresh()->kelompok_tani_id);
+
+        // Pokok lama 1.000.000 lunas, sisanya bunga 20.000 + pokok 10.000 pinjaman baru.
+        $this->post(route('pembayaran.store', $lama->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '1030000',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(Pinjaman::STATUS_LUNAS, $lama->fresh()->status);
+        $this->assertSame(Pinjaman::STATUS_MENUNGGAK, $baru->fresh()->status);
+        $this->post(route('pinjaman.store'), $formulir)->assertSessionHasNoErrors();
+    }
+
     private function pengguna(string $role = User::ROLE_SEKRETARIS): User
     {
         return User::factory()->create(['username' => Str::uuid()->toString(), 'role' => $role]);

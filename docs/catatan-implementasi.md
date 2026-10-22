@@ -13,7 +13,7 @@ Jika diperlukan laporan historis, definisikan perhitungan saldo dan sisa pokok h
 - `SetoranPinjaman::catatKasMasuk()` tidak mengisi `pinjaman_id` dan tidak mempunyai `pembayaran_id`/`kode_setoran` sebagai kolom relasi pada kas. `TransaksiKas::otomatis` hanya memeriksa `pinjaman_id`, sehingga kas setoran dapat disunting/dihapus manual tanpa mengubah pembayaran.
 - Tidak ada route membatalkan, mengedit, atau menghapus pembayaran. Penanganan salah setoran memerlukan rekonsiliasi seluruh data yang terpengaruh.
 - `PinjamanController::update()` tetap mengizinkan perubahan kelompok, tanggal, dan pokok setelah ada pembayaran, tanpa merekonstruksi riwayat bunga/setoran. Mengurangi pokok di bawah pokok yang sudah dibayar dapat membuat sisa pokok negatif.
-- Larangan menambah akad untuk kelompok belum menyetor diperiksa pada `store()`, tetapi tidak diulang pada `update()` ketika kelompok akad diubah.
+- Larangan menambah akad untuk kelompok yang masih punya pinjaman belum bayar diperiksa pada `store()` dan pada `update()` ketika kelompok akad diubah.
 
 Pekerjaan lanjutan yang relevan adalah hubungan setoran ke ledger, prosedur void/reversal, serta batas penyuntingan akad yang memiliki pembayaran. Jangan memperbaiki ketidaksesuaian dengan menghapus kas setoran saja.
 

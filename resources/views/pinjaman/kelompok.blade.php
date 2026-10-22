@@ -17,7 +17,7 @@
                                class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Buat Pinjaman</a>
                         @else
                             <span class="block px-4 py-2.5 text-sm text-slate-400"
-                                  title="Kelompok belum menyetor untuk pinjaman berjalannya">Buat Pinjaman (belum menyetor)</span>
+                                  title="{{ $kelompok->pesanTidakBisaMeminjam() }}">Buat Pinjaman (ada pinjaman belum bayar)</span>
                         @endif
                         @if ($kelompok->status_pinjaman !== \App\Models\Pinjaman::STATUS_LUNAS)
                             <a href="{{ route('pembayaran.create', $kelompok) }}"

@@ -94,7 +94,7 @@ Tanpa login, route domain harus mengarahkan ke `/login`. Uji sandi salah, login 
 | Ubah nominal pinjaman tanpa pembayaran | Kas/talangan turunan tersinkron dan kode baris tidak bertambah tanpa kebutuhan |
 | Hapus pinjaman tanpa pembayaran | Akad dan baris pencairan terhapus bersama |
 | Hapus pinjaman dengan pembayaran | Ditolak |
-| Pinjaman baru untuk kelompok belum menyetor | Ditolak oleh controller, bukan hanya dropdown |
+| Pinjaman baru untuk kelompok yang masih punya pinjaman belum bayar | Ditolak oleh controller, bukan hanya dropdown |
 | Setoran sebelum empat bulan | Diizinkan sejak pencairan; bunga bulan penuh didahulukan lalu pokok |
 | Setoran pada hari pencairan | Bunga nol; setoran langsung mengurangi pokok |
 | Setoran sebelum pencairan | Tidak dialokasikan |

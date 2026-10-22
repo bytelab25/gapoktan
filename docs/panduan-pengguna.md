@@ -45,7 +45,7 @@ Klik baris untuk membuka detail, menyunting/menghapus transaksi manual, atau mem
 ## Pinjaman Kelompok
 
 1. Pilih **Pinjaman Kelompok → Buat Pinjaman**.
-2. Pilih kelompok yang memenuhi syarat. Kelompok yang belum pernah menyetor pada pinjaman aktifnya dikunci.
+2. Pilih kelompok yang memenuhi syarat. Kelompok yang masih punya pinjaman berstatus Belum Bayar dikunci, walaupun pinjaman lainnya sudah dibayar sebagian.
 3. Isi tanggal pencairan, jumlah pokok berformat desimal Indonesia, dan catatan.
 4. Pilih jatuh tempo (nilai awal empat bulan, bisa disunting). Periksa nominal potongan muka, jumlah diterima, dan bunga bulanan; contoh pokok `1.000.000,50` menghasilkan potongan 1,5% sebesar `15.000,01` dan diterima `985.000,49`.
 5. Simpan, lalu periksa detail dan faktur.

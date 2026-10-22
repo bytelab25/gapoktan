@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -77,11 +78,33 @@ class KelompokTani extends Model
     }
 
     /**
-     * Kelompok yang belum pernah menyetor untuk pinjaman berjalannya tidak
-     * boleh menambah pinjaman baru.
+     * Pinjaman aktif yang belum menerima setoran sepeser pun.
+     *
+     * @return Collection<int, Pinjaman>
+     */
+    public function pinjamanBelumDibayar(): Collection
+    {
+        return $this->pinjaman
+            ->filter(fn (Pinjaman $pinjaman) => $pinjaman->status !== Pinjaman::STATUS_LUNAS
+                && $pinjaman->pembayaran->isEmpty())
+            ->values();
+    }
+
+    /**
+     * Selama masih ada satu pinjaman berstatus belum bayar, kelompok tidak
+     * boleh menambah pinjaman baru. Dicek per pinjaman, bukan dari status
+     * kelompok, karena status kelompok sudah "menunggak" begitu salah satu
+     * pinjaman dibayar sebagian.
      */
     public function bisaMengajukanPinjaman(): bool
     {
-        return $this->status_pinjaman !== Pinjaman::STATUS_BELUM_BAYAR;
+        return $this->pinjamanBelumDibayar()->isEmpty();
+    }
+
+    public function pesanTidakBisaMeminjam(): string
+    {
+        return $this->nama_kelompok.' masih punya pinjaman berstatus Belum Bayar ('
+            .$this->pinjamanBelumDibayar()->pluck('kode')->implode(', ')
+            .'), jadi belum bisa mengajukan pinjaman baru.';
     }
 }

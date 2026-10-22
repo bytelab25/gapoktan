@@ -31,7 +31,7 @@
             <option value="">Pilih salah satu Kelompok Tani</option>
             @foreach ($daftarKelompok as $kelompok)
                 @php
-                    // Kelompok yang belum menyetor apa pun dikunci, kecuali kalau
+                    // Kelompok yang masih punya pinjaman belum bayar dikunci, kecuali kalau
                     // pinjaman ini memang miliknya (sedang disunting).
                     $terkunci = ! $kelompok->bisaMengajukanPinjaman()
                         && $pinjaman?->kelompok_tani_id !== $kelompok->id;
@@ -39,12 +39,12 @@
                 <option value="{{ $kelompok->id }}" @disabled($terkunci)
                     @selected(old('kelompok_tani_id', $pinjaman?->kelompok_tani_id ?? request('kelompok')) == $kelompok->id)>
                     {{ $kelompok->nama_kelompok }} — {{ $kelompok->nama_ketua }}
-                    @if ($terkunci) (belum menyetor, tidak bisa pinjam lagi) @endif
+                    @if ($terkunci) (ada pinjaman belum bayar) @endif
                 </option>
             @endforeach
         </select>
         <p class="mt-1.5 text-xs text-slate-500">
-            Kelompok yang belum menyetor sepeser pun untuk pinjaman berjalannya tidak bisa
+            Kelompok yang masih punya pinjaman berstatus Belum Bayar tidak bisa
             mengajukan pinjaman baru.
         </p>
         <x-input-error :messages="$errors->get('kelompok_tani_id')" class="mt-2" />
