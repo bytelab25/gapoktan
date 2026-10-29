@@ -68,14 +68,18 @@ Route::middleware('auth')->group(function () {
     });
 
     /*
+     * Log aktivitas sistem khusus ketua gapoktan.
+     */
+    Route::get('log', LogAktivitasController::class)
+        ->middleware('can:lihat-log')->name('log.index');
+
+    /*
      * Sisanya boleh dilihat semua role, termasuk "user".
      */
     Route::get('beranda', BerandaController::class)->name('beranda');
 
     Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('laporan/unduh', [LaporanController::class, 'unduh'])->name('laporan.unduh');
-
-    Route::get('log', LogAktivitasController::class)->name('log.index');
 
     Route::get('profil', [ProfilController::class, 'show'])->name('profil.show');
     Route::get('profil/sunting', [ProfilController::class, 'edit'])->name('profil.edit');

@@ -1,6 +1,8 @@
 @php
     // Riwayat singkat untuk dropdown History.
-    $riwayatTerkini = \App\Models\LogAktivitas::with('user')->latest()->limit(3)->get();
+    $riwayatTerkini = auth()->user()->can('lihat-log')
+        ? \App\Models\LogAktivitas::with('user')->latest()->limit(3)->get()
+        : collect();
 @endphp
 
 <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6">
@@ -27,31 +29,33 @@
             </div>
         @endcan
 
-        {{-- Riwayat aktivitas --}}
-        <div class="relative" x-data="{ buka: false }" x-on:click.outside="buka = false">
-            <button type="button" x-on:click="buka = ! buka"
-                    class="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-                    aria-label="Riwayat aktivitas">
-                <x-icon name="riwayat-dokumen" class="h-5 w-5" />
-            </button>
-            <div x-show="buka" x-cloak x-transition.origin.top.right
-                 class="absolute right-0 mt-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop">
-                <p class="border-b border-slate-100 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Aktivitas Terkini
-                </p>
-                @forelse ($riwayatTerkini as $log)
-                    <div class="border-b border-slate-50 px-4 py-3">
-                        <p class="text-sm font-medium text-slate-800">{{ $log->user?->name ?? 'Sistem' }}</p>
-                        <p class="mt-0.5 text-xs text-slate-500">{{ $log->deskripsi }}</p>
-                    </div>
-                @empty
-                    <p class="px-4 py-6 text-center text-sm text-slate-400">Belum ada aktivitas.</p>
-                @endforelse
-                <a href="{{ route('log.index') }}" class="block px-4 py-3 text-center text-sm font-semibold text-brand-700 hover:bg-slate-50">
-                    Lihat Selengkapnya
-                </a>
+        @can('lihat-log')
+            {{-- Riwayat aktivitas --}}
+            <div class="relative" x-data="{ buka: false }" x-on:click.outside="buka = false">
+                <button type="button" x-on:click="buka = ! buka"
+                        class="rounded-lg p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                        aria-label="Riwayat aktivitas">
+                    <x-icon name="riwayat-dokumen" class="h-5 w-5" />
+                </button>
+                <div x-show="buka" x-cloak x-transition.origin.top.right
+                     class="absolute right-0 mt-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop">
+                    <p class="border-b border-slate-100 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Aktivitas Terkini
+                    </p>
+                    @forelse ($riwayatTerkini as $log)
+                        <div class="border-b border-slate-50 px-4 py-3">
+                            <p class="text-sm font-medium text-slate-800">{{ $log->user?->name ?? 'Sistem' }}</p>
+                            <p class="mt-0.5 text-xs text-slate-500">{{ $log->deskripsi }}</p>
+                        </div>
+                    @empty
+                        <p class="px-4 py-6 text-center text-sm text-slate-400">Belum ada aktivitas.</p>
+                    @endforelse
+                    <a href="{{ route('log.index') }}" class="block px-4 py-3 text-center text-sm font-semibold text-brand-700 hover:bg-slate-50">
+                        Lihat Selengkapnya
+                    </a>
+                </div>
             </div>
-        </div>
+        @endcan
 
         @can('lihat-pengaturan')
             <a href="{{ route('pengaturan.edit') }}"

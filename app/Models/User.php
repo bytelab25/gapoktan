@@ -97,6 +97,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Log aktivitas sistem hanya untuk ketua gapoktan sebagai pengawas.
+     */
+    public function bisaLihatLog(): bool
+    {
+        return $this->role === self::ROLE_KETUA;
+    }
+
+    /**
      * Menu pengurus (Pengguna dan Kelompok Tani). Role "user" adalah ketua
      * kelompok tani yang membuka dari HP, jadi ia hanya diberi menu yang
      * tampil di beranda: kas, pinjaman, dana talangan, dan laporan.

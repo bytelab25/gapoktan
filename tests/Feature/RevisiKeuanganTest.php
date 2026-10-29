@@ -349,6 +349,26 @@ class RevisiKeuanganTest extends TestCase
         $this->get(route('pinjaman.create'))->assertForbidden();
     }
 
+    public static function bukanKetua(): array
+    {
+        return [[User::ROLE_SEKRETARIS], [User::ROLE_BENDAHARA], [User::ROLE_USER]];
+    }
+
+    #[DataProvider('bukanKetua')]
+    public function test_log_aktivitas_tertutup_untuk_selain_ketua(string $role): void
+    {
+        $this->actingAs($this->pengguna($role))
+            ->get(route('beranda'))->assertOk()->assertDontSee('Aktivitas Terkini');
+        $this->get(route('log.index'))->assertForbidden();
+    }
+
+    public function test_ketua_dapat_melihat_log_aktivitas(): void
+    {
+        $this->actingAs($this->pengguna(User::ROLE_KETUA))
+            ->get(route('beranda'))->assertOk()->assertSee('Aktivitas Terkini');
+        $this->get(route('log.index'))->assertOk();
+    }
+
     public function test_transaksi_kelompok_hanya_menampilkan_yang_belum_terbayar(): void
     {
         $pinjaman = $this->pinjaman();
