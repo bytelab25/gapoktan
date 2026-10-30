@@ -7,6 +7,7 @@ use App\Models\KategoriKas;
 use App\Models\Pinjaman;
 use App\Models\TransaksiKas;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Transaksi yang otomatis lahir saat pinjaman dicairkan:
@@ -60,7 +61,7 @@ class PencairanPinjaman
             'jenis' => DanaTalangan::JENIS_MASUK,
             'jumlah' => $nominalTalangan,
             'deskripsi' => 'Kontribusi '.$persenTalangan.'% dari pencairan pinjaman '.$this->pinjaman->kode,
-            'user_id' => $pencatat->id,
+            ...$this->jejakPengisi($talangan, $pencatat),
         ])->save();
     }
 
@@ -79,8 +80,21 @@ class PencairanPinjaman
             'jenis' => TransaksiKas::JENIS_KELUAR,
             'kategori_kas_id' => $kategori->id,
             'kelompok_tani_id' => $this->pinjaman->kelompok_tani_id,
-            'user_id' => $pencatat->id,
+            ...$this->jejakPengisi($kas, $pencatat),
         ])->save();
+    }
+
+    /**
+     * Pencatat awal dipertahankan; yang menyunting pinjaman tercatat sebagai
+     * pengubah baris turunannya, sehingga faktur memakai namanya.
+     *
+     * @return array<string, int|null>
+     */
+    private function jejakPengisi(Model $baris, User $pencatat): array
+    {
+        return $baris->exists
+            ? ['user_id' => $baris->user_id ?? $pencatat->id, 'diubah_oleh_id' => $pencatat->id]
+            : ['user_id' => $pencatat->id];
     }
 
     private function kodeKasBerikutnya(): string

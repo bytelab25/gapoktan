@@ -17,6 +17,19 @@
         </x-slot:aksi>
     </x-page-header>
 
+    @if ($pinjaman->lewatJatuhTempo())
+        <div class="mb-6 flex items-start gap-3 rounded-xl border border-danger-100 bg-danger-50 p-4 text-danger-700" role="alert">
+            <x-icon name="segitiga-peringatan" class="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+                <p class="font-semibold">Pinjaman lewat jatuh tempo {{ $pinjaman->hariLewatJatuhTempo() }} hari</p>
+                <p class="mt-0.5 text-sm">
+                    Jatuh tempo {{ tanggal_id($pinjaman->tanggal_jatuh_tempo, 'd F Y') }}. Lunasi bunga termin ini
+                    agar jatuh tempo bergeser ke termin berikutnya.
+                </p>
+            </div>
+        </div>
+    @endif
+
     <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <x-stat-card label="Pinjaman Pokok" :nilai="rupiah($pinjaman->jumlah_pinjaman)" ikon="bank" />
         <x-stat-card label="Sisa Pokok" :nilai="rupiah($pinjaman->sisa_pokok)" ikon="keluar-uang" warna="merah" />

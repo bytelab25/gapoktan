@@ -56,11 +56,18 @@ class PembayaranPinjamanController extends Controller
         $tanggal = Carbon::parse($data['tanggal']);
         $layanan = new SetoranPinjaman($kelompok);
         $jumlah = (float) $data['jumlah'];
+        $hanyaBunga = $request->boolean('hanya_bunga');
 
         // Tagihan hari ini hanya tepat bila tidak ada setoran yang lebih baru.
         // Setoran bertanggal mundur divalidasi saat seluruh riwayat diputar ulang.
         if (! $layanan->adaSetoranSesudah($tanggal)) {
-            $maksimal = $layanan->totalPelunasan($tanggal);
+            $maksimal = $layanan->batasSetoran($tanggal, $hanyaBunga);
+
+            if ($hanyaBunga && $maksimal < 0.01 && $layanan->totalPelunasan($tanggal) >= 0.01) {
+                throw ValidationException::withMessages([
+                    'jumlah' => 'Belum ada bunga terhutang pada tanggal ini. Bunga dihitung per bulan penuh sejak setoran terakhir.',
+                ]);
+            }
 
             if ($maksimal < 0.01) {
                 $tertahan = $layanan->belumDicairkan($tanggal);
@@ -75,12 +82,14 @@ class PembayaranPinjamanController extends Controller
             // tagihan ke atas dipangkas, selebihnya dianggap kelebihan bayar.
             if ($jumlah - $maksimal >= 1) {
                 throw ValidationException::withMessages([
-                    'jumlah' => 'Setoran melebihi total tagihan '.rupiah(ceil($maksimal)).'.',
+                    'jumlah' => $hanyaBunga
+                        ? 'Setoran bunga saja melebihi total bunga '.rupiah(ceil($maksimal)).'.'
+                        : 'Setoran melebihi total tagihan '.rupiah(ceil($maksimal)).'.',
                 ]);
             }
         }
 
-        $baris = $layanan->catat($tanggal, $jumlah, $data['deskripsi'] ?? null, $request->user());
+        $baris = $layanan->catat($tanggal, $jumlah, $data['deskripsi'] ?? null, $request->user(), $hanyaBunga);
 
         if ($baris->isEmpty()) {
             return back()->with('gagal', 'Tidak ada tagihan yang bisa dialokasikan untuk setoran ini.');
@@ -90,7 +99,7 @@ class PembayaranPinjamanController extends Controller
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_INPUT,
-            'Setoran pembayaran pinjaman '.rupiah((float) $baris->sum('total_bayar'))
+            'Setoran '.($hanyaBunga ? 'bunga ' : '').'pembayaran pinjaman '.rupiah((float) $baris->sum('total_bayar'))
                 .' dari '.$kelompok->nama_kelompok
                 .($baris->count() > 1 ? ' (terbagi ke '.$baris->count().' pinjaman)' : ''),
             $pertama->kode_setoran,
@@ -127,6 +136,7 @@ class PembayaranPinjamanController extends Controller
             (float) $data['jumlah'],
             $data['deskripsi'] ?? null,
             $request->user(),
+            $request->boolean('hanya_bunga'),
         );
 
         LogAktivitas::catat(
@@ -172,6 +182,7 @@ class PembayaranPinjamanController extends Controller
             'tanggal' => ['required', 'date'],
             'jumlah' => ['required', 'integer', 'min:1'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
+            'hanya_bunga' => ['nullable', 'boolean'],
         ], attributes: [
             'jumlah' => 'jumlah setoran',
         ]);

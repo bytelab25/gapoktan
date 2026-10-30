@@ -234,6 +234,7 @@ class PinjamanController extends Controller
                 'termin' => 1,
                 'potongan_nominal' => $potongan,
                 'jumlah_diterima' => (float) $data['jumlah_pinjaman'] - $potongan,
+                'diubah_oleh_id' => $request->user()->id,
             ]);
 
             (new PencairanPinjaman($pinjaman))->sinkronkan($request->user());

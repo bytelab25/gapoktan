@@ -70,7 +70,7 @@
                     @forelse ($daftarTransaksi as $baris)
                         @if ($baris['jenis'] === 'pinjaman')
                             @php($pinjaman = $baris['pinjaman'])
-                            <tr class="hover:bg-slate-50/60">
+                            <tr @class(['hover:bg-slate-50/60', 'bg-danger-50/50' => $pinjaman->lewatJatuhTempo()])>
                                 <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ tanggal_id($baris['tanggal']) }}</td>
                                 <td class="whitespace-nowrap px-5 py-4">
                                     <a href="{{ route('pinjaman.show', $pinjaman) }}" class="font-medium text-brand-700 hover:underline">{{ $baris['kode'] }}</a>
@@ -79,7 +79,8 @@
                                 <td class="max-w-xs px-5 py-4 text-slate-600">
                                     {{ Str::limit($baris['deskripsi'], 60) ?: 'Pencairan pinjaman' }}
                                     <span class="block text-xs text-slate-400">
-                                        Sisa pokok {{ rupiah($pinjaman->sisa_pokok) }} · jatuh tempo {{ tanggal_id($pinjaman->tanggal_jatuh_tempo) }}
+                                        Sisa pokok {{ rupiah($pinjaman->sisa_pokok) }} · jatuh tempo
+                                        <x-jatuh-tempo :pinjaman="$pinjaman" sebaris class="text-xs" />
                                     </span>
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-slate-900">{{ rupiah($baris['jumlah']) }}</td>
@@ -106,7 +107,12 @@
                             <tr class="hover:bg-slate-50/60">
                                 <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ tanggal_id($baris['tanggal']) }}</td>
                                 <td class="whitespace-nowrap px-5 py-4 font-medium text-brand-700">{{ $baris['kode'] }}</td>
-                                <td class="px-5 py-4"><span class="badge bg-brand-50 text-brand-700">Pembayaran</span></td>
+                                <td class="px-5 py-4">
+                                    <span class="badge bg-brand-50 text-brand-700">Pembayaran</span>
+                                    @if ($baris['baris']->first()->hanya_bunga)
+                                        <span class="mt-1 block text-xs font-medium text-warn-700">Bunga saja</span>
+                                    @endif
+                                </td>
                                 <td class="max-w-xs px-5 py-4 text-slate-600">
                                     {{ Str::limit($baris['deskripsi'], 60) ?: 'Setoran pembayaran' }}
                                     <span class="block text-xs text-slate-400">

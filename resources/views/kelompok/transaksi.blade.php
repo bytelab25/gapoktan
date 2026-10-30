@@ -42,11 +42,11 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($daftarPinjaman as $pinjaman)
-                        <tr class="cursor-pointer hover:bg-slate-50/60"
+                        <tr @class(['cursor-pointer hover:bg-slate-50/60', 'bg-danger-50/50' => $pinjaman->lewatJatuhTempo()])
                             onclick="window.location='{{ route('pinjaman.show', $pinjaman) }}'">
                             <td class="whitespace-nowrap px-6 py-4 text-slate-600">{{ tanggal_id($pinjaman->tanggal_transaksi) }}</td>
                             <td class="whitespace-nowrap px-6 py-4 font-medium text-brand-700">{{ $pinjaman->kode }}</td>
-                            <td class="whitespace-nowrap px-6 py-4 text-slate-600">{{ tanggal_id($pinjaman->tanggal_jatuh_tempo) }}</td>
+                            <td class="whitespace-nowrap px-6 py-4"><x-jatuh-tempo :pinjaman="$pinjaman" /></td>
                             <td class="max-w-xs px-6 py-4 text-slate-500">{{ Str::limit($pinjaman->deskripsi, 70) ?: '-' }}</td>
                             <td class="whitespace-nowrap px-6 py-4 text-right font-semibold text-slate-900">
                                 {{ rupiah($pinjaman->jumlah_pinjaman) }}

@@ -8,7 +8,7 @@
 @if ($lewat)
     <span {{ $attributes->merge(['class' => 'inline-flex items-center gap-1 font-semibold text-danger-700']) }}
           title="Lewat jatuh tempo {{ $pinjaman->hariLewatJatuhTempo() }} hari">
-        <x-icon name="peringatan" class="h-4 w-4 shrink-0" />
+        <x-icon name="segitiga-peringatan" class="h-4 w-4 shrink-0" />
         {{ $tanggal }}
         @if ($sebaris)
             <span class="font-medium">(lewat {{ $pinjaman->hariLewatJatuhTempo() }} hari)</span>

@@ -87,7 +87,7 @@ class DanaTalanganController extends Controller
             return back()->with('gagal', $this->pesanOtomatis());
         }
 
-        $talangan->update($this->validasi($request));
+        $talangan->update([...$this->validasi($request), 'diubah_oleh_id' => $request->user()->id]);
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_SUNTING,

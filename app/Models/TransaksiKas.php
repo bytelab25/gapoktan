@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PunyaPenyunting;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TransaksiKas extends Model
 {
-    use HasFactory;
+    use HasFactory, PunyaPenyunting;
 
     public const JENIS_MASUK = 'masuk';
 
@@ -29,6 +30,7 @@ class TransaksiKas extends Model
         'biaya',
         'deskripsi',
         'user_id',
+        'diubah_oleh_id',
     ];
 
     protected function casts(): array

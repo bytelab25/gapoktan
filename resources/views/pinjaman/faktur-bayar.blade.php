@@ -12,6 +12,7 @@
         @foreach ([
             'Kelompok Tani' => $kelompok->nama_kelompok . ' (' . $kelompok->kode . ')',
             'Tanggal Bayar' => tanggal_id($pembayaran->tanggal, 'd F Y'),
+            'Jenis Setoran' => $pembayaran->hanya_bunga ? 'Bunga saja' : 'Bunga dan pokok',
             'Jumlah Pinjaman Terbayar' => $daftarBaris->count() . ' pinjaman',
             'Catatan' => $pembayaran->deskripsi ?: '-',
         ] as $label => $nilai)
@@ -60,7 +61,9 @@
     @if ($daftarBaris->count() > 1)
         <p class="mt-4 text-xs text-slate-500">
             Setoran dibagi ke {{ $daftarBaris->count() }} pinjaman mengikuti aturan pinjaman tertua
-            dilunasi lebih dulu, dan pada tiap pinjaman bunga dibayar sebelum pokok.
+            dilunasi lebih dulu, {{ $pembayaran->hanya_bunga
+                ? 'dan hanya menutup bunga tanpa memotong pokok.'
+                : 'dan pada tiap pinjaman bunga dibayar sebelum pokok.' }}
         </p>
     @endif
 
@@ -76,8 +79,8 @@
         <div class="text-center">
             <p class="text-sm text-slate-500">Penerima</p>
             <div class="mt-16 w-52 border-t border-slate-300 pt-2">
-                <p class="text-sm font-semibold text-slate-900">{{ $pembayaran->user?->name ?? '-' }}</p>
-                <p class="text-xs text-slate-500">{{ $pembayaran->user?->label_role ?? '' }}</p>
+                <p class="text-sm font-semibold text-slate-900">{{ $pembayaran->penanda_tangan?->name ?? '-' }}</p>
+                <p class="text-xs text-slate-500">{{ $pembayaran->penanda_tangan?->label_role ?? '' }}</p>
             </div>
         </div>
     </div>

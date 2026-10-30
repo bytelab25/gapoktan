@@ -15,17 +15,19 @@
     <div x-data="{
              tanggal: '{{ old('tanggal', now()->format('Y-m-d')) }}',
              jumlah: {{ (float) old('jumlah', 0) }},
+             hanyaBunga: @js((bool) old('hanya_bunga', false)),
              antrian: @js($antrian),
              totalBunga: {{ $totalBunga }},
              totalPelunasan: {{ $totalPelunasan }},
              rupiah(nilai) { return 'Rp ' + formatNominal(nilai) },
-             /* Cermin logika server: bunga dulu, lalu pokok, pinjaman tertua lebih dulu. */
+             /* Cermin logika server: bunga dulu, lalu pokok, pinjaman tertua lebih dulu.
+                Setoran bunga saja tidak pernah memotong pokok. */
              get alokasi() {
                  let sisa = this.jumlah || 0;
                  return this.antrian.map((item) => {
                      const bunga = Math.min(sisa, item.bunga);
                      sisa -= bunga;
-                     const pokok = bunga >= item.bunga ? Math.min(sisa, item.pokok) : 0;
+                     const pokok = ! this.hanyaBunga && bunga >= item.bunga ? Math.min(sisa, item.pokok) : 0;
                      sisa -= pokok;
                      return { kode: item.kode, bunga, pokok, total: bunga + pokok };
                  });
@@ -59,7 +61,7 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($tagihan as $urutan => $pinjaman)
-                                <tr>
+                                <tr @class(['bg-danger-50/50' => $pinjaman->lewatJatuhTempo()])>
                                     <td class="whitespace-nowrap px-5 py-4">
                                         <span class="font-semibold text-slate-900">{{ $pinjaman->kode }}</span>
                                         <span class="ml-2 badge bg-brand-50 text-brand-700">#{{ $urutan + 1 }}</span>
@@ -71,7 +73,7 @@
                                         {{ $pinjaman->deskripsi ?: '—' }}
                                     </td>
                                     <td class="whitespace-nowrap px-5 py-4">
-                                        <span class="text-slate-600">{{ tanggal_id($pinjaman->tanggal_jatuh_tempo) }}</span>
+                                        <x-jatuh-tempo :pinjaman="$pinjaman" />
                                         <span class="block"><x-status-badge :status="$pinjaman->status" /></span>
                                     </td>
                                     <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-slate-900">
@@ -156,8 +158,11 @@
             {{-- Pratinjau pembagian setoran --}}
             <div class="card self-start p-5 lg:col-span-3" x-show="jumlah > 0" x-cloak>
                 <h2 class="text-base font-semibold text-slate-900">Pembagian Setoran</h2>
-                <p class="mt-1 text-xs text-slate-500">
+                <p class="mt-1 text-xs text-slate-500" x-show="! hanyaBunga">
                     Bunga dilunasi lebih dulu. Sisanya baru memotong pokok, lalu mengalir ke pinjaman berikutnya.
+                </p>
+                <p class="mt-1 text-xs text-slate-500" x-show="hanyaBunga" x-cloak>
+                    Setoran hanya menutup bunga, mulai pinjaman tertua. Pokok semua pinjaman tidak berubah.
                 </p>
 
                 <div class="mt-4 space-y-2">
@@ -193,15 +198,18 @@
                     <x-input-error :messages="$errors->get('tanggal')" class="mt-2" />
                 </div>
 
+                <x-pilihan-jenis-setoran :nilai="(bool) old('hanya_bunga', false)" />
+
                 <div>
                     <label for="jumlah" class="label-field">Jumlah Setoran</label>
                     <x-input-nominal name="jumlah" :value="old('jumlah', 0)" placeholder="Masukkan Total Bayar" />
                     <div class="mt-2.5 flex flex-wrap gap-2">
-                        <button type="button" x-on:click="jumlah = Math.ceil(totalBunga)" class="chip">
+                        <button type="button" x-on:click="hanyaBunga = true; jumlah = Math.ceil(totalBunga)" class="chip"
+                                @disabled($totalBunga < 0.01)>
                             <x-icon name="persen" class="h-3.5 w-3.5" />
                             Bayar bunga saja
                         </button>
-                        <button type="button" x-on:click="jumlah = Math.ceil(totalPelunasan)" class="chip">
+                        <button type="button" x-on:click="hanyaBunga = false; jumlah = Math.ceil(totalPelunasan)" class="chip">
                             <x-icon name="centang" class="h-3.5 w-3.5" />
                             Lunasi semua
                         </button>
@@ -239,7 +247,8 @@
                     <span class="text-xl font-bold text-brand-600" x-text="rupiah(jumlah || 0)">Rp 0</span>
                 </div>
                 <p x-show="kelebihan > 0" x-cloak class="rounded-lg bg-danger-50 px-3 py-2 text-xs text-danger-700">
-                    Setoran melebihi tagihan sebesar <span x-text="rupiah(kelebihan)"></span>.
+                    Setoran melebihi <span x-text="hanyaBunga ? 'total bunga' : 'tagihan'"></span>
+                    sebesar <span x-text="rupiah(kelebihan)"></span>.
                 </p>
             </div>
 

@@ -233,6 +233,134 @@ class RevisiKeuanganTest extends TestCase
         $this->assertSame('1160000.00', TransaksiKas::firstOrFail()->jumlah);
     }
 
+    public function test_setoran_bunga_saja_menutup_bunga_semua_pinjaman_tanpa_memotong_pokok(): void
+    {
+        $pertama = $this->pinjaman(['tanggal_jatuh_tempo' => '2026-10-08']);
+        $kedua = $this->pinjaman(['kelompok_tani_id' => $pertama->kelompok_tani_id, 'tanggal_transaksi' => '2026-09-08']);
+
+        // Bunga: 2 bulan × 20.000 untuk pinjaman pertama, 1 bulan untuk kedua.
+        $this->actingAs($this->pengguna())->post(route('pembayaran.store', $pertama->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '60000', 'hanya_bunga' => '1',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $this->assertEquals(1000000, $pertama->fresh()->sisa_pokok);
+        $this->assertEquals(1000000, $kedua->fresh()->sisa_pokok);
+        $this->assertSame('0.00', $pertama->fresh()->tunggakan_bunga);
+        $this->assertSame('0.00', $kedua->fresh()->tunggakan_bunga);
+        $this->assertSame(['40000.00', '20000.00'], PembayaranPinjaman::orderBy('id')->pluck('bunga_nominal')->all());
+        $this->assertTrue(PembayaranPinjaman::firstOrFail()->hanya_bunga);
+        // Bunga termin lunas tepat di jatuh tempo, maka termin maju.
+        $this->assertSame('2027-02-08', $pertama->fresh()->tanggal_jatuh_tempo->toDateString());
+    }
+
+    public function test_setoran_bunga_saja_melewati_pinjaman_yang_belum_berbunga(): void
+    {
+        $tua = $this->pinjaman();
+        $muda = $this->pinjaman(['kelompok_tani_id' => $tua->kelompok_tani_id, 'tanggal_transaksi' => '2026-09-05']);
+        $this->actingAs($this->pengguna());
+
+        // Bunga pinjaman tua dilunasi 1 Oktober, jadi per 8 Oktober bunganya Rp 0.
+        $this->post(route('pembayaran.store', $tua->kelompok_tani_id), [
+            'tanggal' => '2026-10-01', 'jumlah' => '20000', 'hanya_bunga' => '1',
+        ])->assertSessionHasNoErrors();
+        $this->post(route('pembayaran.store', $tua->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '20000', 'hanya_bunga' => '1',
+        ])->assertSessionHasNoErrors();
+
+        // Pinjaman tua tidak boleh dapat baris Rp 0 yang memajukan awal hitung bunganya.
+        $this->assertSame(1, $tua->pembayaran()->count());
+        $this->assertSame('2026-10-01', $tua->fresh()->load('pembayaran')->mulai_bunga->toDateString());
+        $this->assertSame('20000.00', $muda->pembayaran()->firstOrFail()->bunga_nominal);
+        $this->assertSame(0, PembayaranPinjaman::where('total_bayar', 0)->count());
+    }
+
+    public function test_setoran_bunga_saja_tidak_boleh_melebihi_total_bunga(): void
+    {
+        $pinjaman = $this->pinjaman();
+
+        $this->actingAs($this->pengguna())->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '50000', 'hanya_bunga' => '1',
+        ])->assertSessionHasErrors('jumlah');
+
+        $this->assertDatabaseCount('pembayaran_pinjaman', 0);
+    }
+
+    public function test_jenis_bunga_saja_bertahan_saat_riwayat_diputar_ulang(): void
+    {
+        $pinjaman = $this->pinjaman();
+        $pengguna = $this->pengguna();
+        $this->actingAs($pengguna)->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '20000', 'hanya_bunga' => '1',
+        ])->assertSessionHasNoErrors();
+        // Setoran mundur memutar ulang setoran 8 Oktober; jenisnya harus tetap bunga saja.
+        $this->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-09-08', 'jumlah' => '20000', 'hanya_bunga' => '1',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame([true, true], PembayaranPinjaman::orderBy('tanggal')->pluck('hanya_bunga')->all());
+        $this->assertEquals(1000000, $pinjaman->fresh()->sisa_pokok);
+    }
+
+    public function test_pinjaman_lewat_jatuh_tempo_diberi_peringatan(): void
+    {
+        $lewat = $this->pinjaman(['tanggal_jatuh_tempo' => '2026-10-01']);
+        $aman = $this->pinjaman();
+
+        $this->assertTrue($lewat->lewatJatuhTempo());
+        $this->assertSame(7, $lewat->hariLewatJatuhTempo());
+        $this->assertFalse($aman->lewatJatuhTempo());
+        $this->assertFalse($this->pinjaman(['tanggal_jatuh_tempo' => '2026-10-01', 'status' => Pinjaman::STATUS_LUNAS])->lewatJatuhTempo());
+
+        $this->actingAs($this->pengguna(User::ROLE_USER))
+            ->get(route('beranda'))->assertOk()->assertSee('1 pinjaman lewat jatuh tempo');
+        $this->get(route('pinjaman.show', $lewat))->assertOk()->assertSee('Pinjaman lewat jatuh tempo 7 hari');
+        $this->get(route('pinjaman.show', $aman))->assertOk()->assertDontSee('lewat jatuh tempo');
+        $this->get(route('pinjaman.kelompok', $lewat->kelompok_tani_id))->assertOk()->assertSee('lewat 7 hari');
+    }
+
+    public function test_bunga_lunas_sebelum_jatuh_tempo_tidak_ditandai_lewat(): void
+    {
+        $pinjaman = $this->pinjaman(['tanggal_jatuh_tempo' => '2026-10-01']);
+
+        $this->actingAs($this->pengguna())->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-09-30', 'jumlah' => '20000', 'hanya_bunga' => '1',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertFalse($pinjaman->fresh()->load('pembayaran')->lewatJatuhTempo());
+        $this->get(route('beranda'))->assertDontSee('lewat jatuh tempo');
+    }
+
+    public function test_faktur_ditandatangani_penyunting_terakhir(): void
+    {
+        $pencatat = User::factory()->create(['username' => 'pencatat', 'name' => 'Pencatat Awal', 'role' => User::ROLE_SEKRETARIS]);
+        $penyunting = User::factory()->create(['username' => 'penyunting', 'name' => 'Penyunting Akhir', 'role' => User::ROLE_BENDAHARA]);
+        $pinjaman = $this->pinjaman(['user_id' => $pencatat->id]);
+
+        $this->actingAs($pencatat)->post(route('pembayaran.store', $pinjaman->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '40000',
+        ])->assertSessionHasNoErrors();
+        $bayar = PembayaranPinjaman::firstOrFail();
+        $this->get(route('pembayaran.faktur', $bayar))->assertSee('Pencatat Awal');
+
+        $this->actingAs($penyunting)->put(route('pembayaran.update', $bayar), [
+            'tanggal' => '2026-10-08', 'jumlah' => '50000',
+        ])->assertSessionHasNoErrors();
+
+        $baru = PembayaranPinjaman::firstOrFail();
+        $this->assertSame($pencatat->id, $baru->user_id);
+        $this->assertSame($penyunting->id, $baru->diubah_oleh_id);
+        $this->get(route('pembayaran.faktur', $baru))->assertSee('Penyunting Akhir')->assertDontSee('Pencatat Awal');
+        $this->assertSame($penyunting->id, TransaksiKas::firstOrFail()->diubah_oleh_id);
+
+        $belumBayar = $this->pinjaman(['user_id' => $pencatat->id]);
+        $this->put(route('pinjaman.update', $belumBayar), [
+            'kelompok_tani_id' => $belumBayar->kelompok_tani_id, 'tanggal_transaksi' => '2026-08-08',
+            'tanggal_jatuh_tempo' => '2026-12-08', 'jumlah_pinjaman' => '2000000',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame($pencatat->id, $belumBayar->fresh()->user_id);
+        $this->get(route('pinjaman.faktur', $belumBayar))->assertSee('Penyunting Akhir')->assertDontSee('Pencatat Awal');
+    }
+
     public function test_daftar_pinjaman_per_kelompok_termasuk_yang_lunas(): void
     {
         $aktif = $this->pinjaman();

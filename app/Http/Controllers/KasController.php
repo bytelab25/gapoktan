@@ -94,6 +94,7 @@ class KasController extends Controller
 
         $data = $this->validasi($request);
         $data['biaya'] = $this->hitungBiaya($data['jumlah']);
+        $data['diubah_oleh_id'] = $request->user()->id;
 
         $kas->update($data);
 

@@ -28,6 +28,8 @@ use Illuminate\Validation\ValidationException;
  *    tempo terlewati, jatuh tempo maju 4 bulan selama pokok belum lunas.
  * 4. Setoran bisa disunting dan dihapus. Karena poin 1–3 bergantung pada
  *    setoran sebelumnya, riwayat kelompok selalu diputar ulang dari awal.
+ * 5. Setoran "bunga saja" hanya menutup bunga, tetap FIFO antar pinjaman,
+ *    dan tidak pernah memotong pokok.
  */
 class SetoranPinjaman
 {
@@ -95,12 +97,21 @@ class SetoranPinjaman
     }
 
     /**
+     * Batas setoran pada tanggal tertentu: seluruh bunga untuk setoran
+     * "bunga saja", atau bunga ditambah sisa pokok untuk setoran biasa.
+     */
+    public function batasSetoran(Carbon $sampai, bool $hanyaBunga = false): float
+    {
+        return $hanyaBunga ? $this->totalBungaTerhutang($sampai) : $this->totalPelunasan($sampai);
+    }
+
+    /**
      * Catat setoran baru. Seluruh setoran kelompok disusun ulang menurut
      * tanggal, jadi setoran bertanggal mundur pun teralokasi dengan benar.
      *
      * @return Collection<int, PembayaranPinjaman> baris pembayaran yang terbentuk
      */
-    public function catat(Carbon $tanggal, float $jumlah, ?string $deskripsi, User $pencatat): Collection
+    public function catat(Carbon $tanggal, float $jumlah, ?string $deskripsi, User $pencatat, bool $hanyaBunga = false): Collection
     {
         $kodeSetoran = $this->kodeSetoranBerikutnya();
 
@@ -109,7 +120,9 @@ class SetoranPinjaman
             'tanggal' => $tanggal->copy()->startOfDay(),
             'jumlah' => round($jumlah, 2),
             'deskripsi' => $deskripsi,
+            'hanya_bunga' => $hanyaBunga,
             'user_id' => $pencatat->id,
+            'diubah_oleh_id' => null,
             'kode_baris' => [],
             'urutan' => PHP_INT_MAX,
         ]), $pencatat);
@@ -118,13 +131,27 @@ class SetoranPinjaman
     }
 
     /**
-     * Ganti tanggal, nominal, atau catatan satu setoran.
+     * Ganti tanggal, nominal, jenis, atau catatan satu setoran. Penyunting
+     * dicatat supaya faktur setoran ditandatangani olehnya.
      */
-    public function ubah(string $kodeSetoran, Carbon $tanggal, float $jumlah, ?string $deskripsi, User $pencatat): void
-    {
+    public function ubah(
+        string $kodeSetoran,
+        Carbon $tanggal,
+        float $jumlah,
+        ?string $deskripsi,
+        User $pencatat,
+        bool $hanyaBunga = false,
+    ): void {
         $this->susunUlang(fn (SupportCollection $daftar) => $daftar->map(
             fn (array $setoran) => $setoran['kode_setoran'] === $kodeSetoran
-                ? [...$setoran, 'tanggal' => $tanggal->copy()->startOfDay(), 'jumlah' => round($jumlah, 2), 'deskripsi' => $deskripsi]
+                ? [
+                    ...$setoran,
+                    'tanggal' => $tanggal->copy()->startOfDay(),
+                    'jumlah' => round($jumlah, 2),
+                    'deskripsi' => $deskripsi,
+                    'hanya_bunga' => $hanyaBunga,
+                    'diubah_oleh_id' => $pencatat->id,
+                ]
                 : $setoran,
         ), $pencatat);
     }
@@ -182,7 +209,9 @@ class SetoranPinjaman
                     'tanggal' => $grup->first()->tanggal->copy(),
                     'jumlah' => round((float) $grup->sum('total_bayar'), 2),
                     'deskripsi' => $grup->first()->deskripsi,
+                    'hanya_bunga' => (bool) $grup->first()->hanya_bunga,
                     'user_id' => $grup->first()->user_id,
+                    'diubah_oleh_id' => $grup->first()->diubah_oleh_id,
                     'kode_baris' => $grup->sortBy('id')->pluck('kode')->all(),
                     'urutan' => $grup->min('id'),
                 ])
@@ -225,12 +254,15 @@ class SetoranPinjaman
     private function putarUlang(array $setoran, User $pencatat): void
     {
         $tanggal = $setoran['tanggal'];
-        $maksimal = $this->totalPelunasan($tanggal);
+        $hanyaBunga = $setoran['hanya_bunga'];
+        $maksimal = $this->batasSetoran($tanggal, $hanyaBunga);
         $label = 'Setoran tanggal '.tanggal_id($tanggal, 'd F Y');
 
         if ($maksimal < 0.01) {
             throw ValidationException::withMessages([
-                'jumlah' => $label.' tidak punya tagihan yang bisa dibayar. Pinjaman mungkin belum dicairkan atau sudah lunas.',
+                'jumlah' => $hanyaBunga
+                    ? $label.' ditandai bunga saja, tetapi saat itu tidak ada bunga terhutang.'
+                    : $label.' tidak punya tagihan yang bisa dibayar. Pinjaman mungkin belum dicairkan atau sudah lunas.',
             ]);
         }
 
@@ -238,13 +270,14 @@ class SetoranPinjaman
         if ($setoran['jumlah'] - $maksimal >= 1) {
             throw ValidationException::withMessages([
                 'jumlah' => $label.' sebesar '.rupiah($setoran['jumlah'])
-                    .' melebihi total tagihan saat itu, '.rupiah(ceil($maksimal)).'.',
+                    .' melebihi total '.($hanyaBunga ? 'bunga' : 'tagihan').' saat itu, '.rupiah(ceil($maksimal)).'.',
             ]);
         }
 
         $sisaUang = round(min($setoran['jumlah'], $maksimal), 2);
         $kodeBaris = $setoran['kode_baris'];
         $pengisi = User::find($setoran['user_id']) ?? $pencatat;
+        $jejak = ['hanya_bunga' => $hanyaBunga, 'user_id' => $pengisi->id, 'diubah_oleh_id' => $setoran['diubah_oleh_id']];
         $baris = new Collection;
 
         foreach ($this->tagihan($tanggal) as $pinjaman) {
@@ -252,17 +285,25 @@ class SetoranPinjaman
                 break;
             }
 
+            // Pinjaman tanpa bunga terhutang tidak disentuh setoran bunga saja;
+            // baris Rp 0 akan memajukan awal hitung bunganya.
+            if ($hanyaBunga && $pinjaman->bungaTerhutang($tanggal) < 0.01) {
+                continue;
+            }
+
             $baris->push($this->bayarSatuPinjaman(
-                $pinjaman, $tanggal, $sisaUang, $setoran['kode_setoran'], $setoran['deskripsi'], $pengisi,
+                $pinjaman, $tanggal, $sisaUang, $setoran['kode_setoran'], $setoran['deskripsi'], $jejak,
                 array_shift($kodeBaris) ?? $this->kodeBayarBerikutnya(),
             ));
         }
 
-        $this->simpanKasMasuk($tanggal, (float) $baris->sum('total_bayar'), $setoran['kode_setoran'], $pengisi);
+        $this->simpanKasMasuk($tanggal, (float) $baris->sum('total_bayar'), $setoran['kode_setoran'], $jejak);
     }
 
     /**
      * Alokasi ke satu pinjaman. Mengurangi $sisaUang sesuai yang terpakai.
+     *
+     * @param  array{hanya_bunga: bool, user_id: int, diubah_oleh_id: int|null}  $jejak
      */
     private function bayarSatuPinjaman(
         Pinjaman $pinjaman,
@@ -270,7 +311,7 @@ class SetoranPinjaman
         float &$sisaUang,
         string $kodeSetoran,
         ?string $deskripsi,
-        User $pencatat,
+        array $jejak,
         string $kode,
     ): PembayaranPinjaman {
         $bungaTerhutang = $pinjaman->bungaTerhutang($tanggal);
@@ -279,9 +320,10 @@ class SetoranPinjaman
         $bayarBunga = round(min($sisaUang, $bungaTerhutang), 2);
         $sisaUang = round($sisaUang - $bayarBunga, 2);
 
-        // Pokok hanya terpotong kalau bunga sudah tertutup semua.
+        // Pokok hanya terpotong kalau bunga sudah tertutup semua, dan tidak
+        // pernah untuk setoran bunga saja: sisanya ke bunga pinjaman berikutnya.
         $bayarPokok = 0.0;
-        if ($bungaTerhutang - $bayarBunga < 0.01) {
+        if (! $jejak['hanya_bunga'] && $bungaTerhutang - $bayarBunga < 0.01) {
             $bayarPokok = round(min($sisaUang, $pinjaman->sisa_pokok), 2);
             $sisaUang = round($sisaUang - $bayarPokok, 2);
         }
@@ -295,7 +337,7 @@ class SetoranPinjaman
             'bayar_pokok' => $bayarPokok,
             'total_bayar' => round($bayarBunga + $bayarPokok, 2),
             'deskripsi' => $deskripsi,
-            'user_id' => $pencatat->id,
+            ...$jejak,
         ]);
 
         $pinjaman->tunggakan_bunga = max(0, round($bungaTerhutang - $bayarBunga, 2));
@@ -314,8 +356,10 @@ class SetoranPinjaman
     /**
      * Setoran kelompok masuk kembali ke kas koperasi sebagai satu transaksi.
      * Baris kas lama dipertahankan supaya kode transaksinya tidak berubah.
+     *
+     * @param  array{hanya_bunga: bool, user_id: int, diubah_oleh_id: int|null}  $jejak
      */
-    private function simpanKasMasuk(Carbon $tanggal, float $total, string $kodeSetoran, User $pencatat): void
+    private function simpanKasMasuk(Carbon $tanggal, float $total, string $kodeSetoran, array $jejak): void
     {
         $kas = TransaksiKas::firstOrNew(['kode_setoran' => $kodeSetoran]);
 
@@ -328,7 +372,8 @@ class SetoranPinjaman
             'jumlah' => $total,
             'biaya' => 0,
             'deskripsi' => 'Setoran '.$kodeSetoran.' dari '.$this->kelompok->nama_kelompok,
-            'user_id' => $kas->user_id ?? $pencatat->id,
+            'user_id' => $kas->user_id ?? $jejak['user_id'],
+            'diubah_oleh_id' => $jejak['diubah_oleh_id'],
         ])->save();
     }
 

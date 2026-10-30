@@ -55,8 +55,9 @@
                     @forelse ($daftarKelompok as $kelompok)
                         @php
                             $aktif = $kelompok->pinjaman->where('status', '!=', \App\Models\Pinjaman::STATUS_LUNAS)->count();
+                            $lewatTempo = $kelompok->pinjaman->filter->lewatJatuhTempo()->count();
                         @endphp
-                        <tr class="cursor-pointer hover:bg-slate-50/60"
+                        <tr @class(['cursor-pointer hover:bg-slate-50/60', 'bg-danger-50/50' => $lewatTempo])
                             onclick="window.location='{{ route('pinjaman.kelompok', $kelompok) }}'">
                             <td class="px-6 py-4">
                                 <span class="font-semibold text-slate-900">{{ $kelompok->nama_kelompok }}</span>
@@ -74,7 +75,15 @@
                             <td class="whitespace-nowrap px-6 py-4 text-right font-semibold text-slate-900">
                                 {{ rupiah($kelompok->total_pinjaman) }}
                             </td>
-                            <td class="px-6 py-4"><x-status-badge :status="$kelompok->status_pinjaman" /></td>
+                            <td class="px-6 py-4">
+                                <x-status-badge :status="$kelompok->status_pinjaman" />
+                                @if ($lewatTempo)
+                                    <span class="mt-1 flex items-center gap-1 text-xs font-semibold text-danger-700">
+                                        <x-icon name="segitiga-peringatan" class="h-3.5 w-3.5 shrink-0" />
+                                        {{ $lewatTempo }} lewat jatuh tempo
+                                    </span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <x-empty-state kolom="5" pesan="Belum ada kelompok tani yang memiliki pinjaman.">

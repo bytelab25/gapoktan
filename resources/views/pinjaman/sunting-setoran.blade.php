@@ -9,7 +9,7 @@
                 <h2 class="text-lg font-semibold text-slate-900">Alokasi Saat Ini</h2>
                 <p class="mt-1 text-xs text-slate-500">
                     Setelah disimpan, semua setoran {{ $kelompok->nama_kelompok }} dihitung ulang urut tanggal:
-                    bunga dulu, lalu pokok, pinjaman tertua lebih dulu.
+                    bunga dulu, lalu pokok (kecuali setoran bunga saja), pinjaman tertua lebih dulu.
                 </p>
             </div>
 
@@ -41,7 +41,7 @@
         </div>
 
         <form method="POST" action="{{ route('pembayaran.update', $pembayaran) }}"
-              x-data="{ jumlah: {{ (float) old('jumlah', $jumlah) }} }"
+              x-data="{ jumlah: {{ (float) old('jumlah', $jumlah) }}, hanyaBunga: @js((bool) old('hanya_bunga', $pembayaran->hanya_bunga)) }"
               class="card self-start p-6 lg:col-span-2">
             @csrf
             @method('PUT')
@@ -55,6 +55,8 @@
                            value="{{ old('tanggal', $pembayaran->tanggal->format('Y-m-d')) }}">
                     <x-input-error :messages="$errors->get('tanggal')" class="mt-2" />
                 </div>
+
+                <x-pilihan-jenis-setoran :nilai="(bool) old('hanya_bunga', $pembayaran->hanya_bunga)" />
 
                 <div>
                     <label for="jumlah" class="label-field">Jumlah Setoran</label>

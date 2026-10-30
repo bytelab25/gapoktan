@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PunyaPenyunting;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,13 +10,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PembayaranPinjaman extends Model
 {
-    use HasFactory;
+    use HasFactory, PunyaPenyunting;
 
     protected $table = 'pembayaran_pinjaman';
 
     protected $fillable = [
         'kode',
         'kode_setoran',
+        'hanya_bunga',
         'pinjaman_id',
         'tanggal',
         'bulan_bunga',
@@ -24,12 +26,14 @@ class PembayaranPinjaman extends Model
         'total_bayar',
         'deskripsi',
         'user_id',
+        'diubah_oleh_id',
     ];
 
     protected function casts(): array
     {
         return [
             'tanggal' => 'date',
+            'hanya_bunga' => 'boolean',
             'bulan_bunga' => 'integer',
             'bunga_nominal' => 'decimal:2',
             'bayar_pokok' => 'decimal:2',

@@ -42,10 +42,10 @@
 
     <div class="mt-12 flex justify-end">
         <div class="text-center">
-            <p class="text-sm text-slate-500">Dicatat oleh</p>
+            <p class="text-sm text-slate-500">{{ $transaksi->diubah_oleh_id ? 'Diubah oleh' : 'Dicatat oleh' }}</p>
             <div class="mt-16 w-56 border-t border-slate-300 pt-2">
-                <p class="text-sm font-semibold text-slate-900">{{ $transaksi->user?->name ?? '-' }}</p>
-                <p class="text-xs text-slate-500">{{ $transaksi->user?->role ?? '' }}</p>
+                <p class="text-sm font-semibold text-slate-900">{{ $transaksi->penanda_tangan?->name ?? '-' }}</p>
+                <p class="text-xs text-slate-500">{{ $transaksi->penanda_tangan?->label_role ?? '' }}</p>
             </div>
         </div>
     </div>

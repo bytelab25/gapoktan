@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PunyaPenyunting;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Support\Carbon;
 
 class Pinjaman extends Model
 {
-    use HasFactory;
+    use HasFactory, PunyaPenyunting;
 
     /**
      * Jatuh tempo awal dapat ditentukan pengurus; perpanjangan termin 4 bulan.
@@ -48,6 +49,7 @@ class Pinjaman extends Model
         'status',
         'deskripsi',
         'user_id',
+        'diubah_oleh_id',
     ];
 
     protected function casts(): array
@@ -211,6 +213,28 @@ class Pinjaman extends Model
         return $this->relationLoaded('pembayaran')
             ? $this->pembayaran->isEmpty()
             : ! $this->pembayaran()->exists();
+    }
+
+    /**
+     * Pinjaman belum lunas yang jatuh temponya sudah lewat dan masih punya
+     * bunga terhutang. Jatuh tempo hanya maju bila bunga dilunasi pada atau
+     * setelah tanggalnya, jadi kelompok yang melunasi bunga beberapa hari
+     * sebelum jatuh tempo tidak boleh langsung ditandai lewat.
+     */
+    public function lewatJatuhTempo(?Carbon $per = null): bool
+    {
+        $per = ($per ?? Carbon::today())->copy()->startOfDay();
+
+        return $this->status !== self::STATUS_LUNAS
+            && $this->tanggal_jatuh_tempo->lt($per)
+            && $this->bungaTerhutang($per) >= 0.01;
+    }
+
+    public function hariLewatJatuhTempo(?Carbon $per = null): int
+    {
+        return $this->lewatJatuhTempo($per)
+            ? (int) $this->tanggal_jatuh_tempo->diffInDays(($per ?? Carbon::today())->copy()->startOfDay())
+            : 0;
     }
 
     public function getLabelStatusAttribute(): string

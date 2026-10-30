@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PunyaPenyunting;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DanaTalangan extends Model
 {
-    use HasFactory;
+    use HasFactory, PunyaPenyunting;
 
     public const JENIS_MASUK = 'masuk';
     public const JENIS_KELUAR = 'keluar';
@@ -25,6 +26,7 @@ class DanaTalangan extends Model
         'jumlah',
         'deskripsi',
         'user_id',
+        'diubah_oleh_id',
     ];
 
     protected function casts(): array
