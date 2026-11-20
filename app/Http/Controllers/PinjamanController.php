@@ -114,24 +114,20 @@ class PinjamanController extends Controller
     {
         $data = $this->validasi($request);
 
-        // Kelompok yang masih punya pinjaman belum dibayar sama sekali tidak
-        // boleh menumpuk pinjaman baru.
-        $kelompok = KelompokTani::with('pinjaman.pembayaran')->findOrFail($data['kelompok_tani_id']);
+        $pinjaman = DB::transaction(function () use ($data, $request) {
+            // Kunci baris tunggal pengaturan sebelum membaca urutan pinjaman.
+            $pengaturan = Pengaturan::lockForUpdate()->orderBy('id')->first() ?? Pengaturan::ambil();
+            $kelompok = KelompokTani::with('pinjaman.pembayaran')->findOrFail($data['kelompok_tani_id']);
 
-        if (! $kelompok->bisaMengajukanPinjaman()) {
-            throw ValidationException::withMessages([
-                'kelompok_tani_id' => $kelompok->pesanTidakBisaMeminjam(),
-            ]);
-        }
+            if (! $kelompok->bisaMengajukanPinjaman()) {
+                throw ValidationException::withMessages([
+                    'kelompok_tani_id' => $kelompok->pesanTidakBisaMeminjam(),
+                ]);
+            }
 
-        $pengaturan = Pengaturan::ambil();
-
-        // Potongan muka menggabungkan biaya operasional dan kontribusi dana talangan.
-        $persenOperasional = (float) $pengaturan->potongan_operasional;
-        $persenTalangan = (float) $pengaturan->potongan_dana_talangan;
-        $persenPotongan = $persenOperasional + $persenTalangan;
-        $potongan = round((float) $data['jumlah_pinjaman'] * $persenPotongan / 100, 2);
-        $pinjaman = DB::transaction(function () use ($data, $persenPotongan, $persenTalangan, $potongan, $pengaturan, $request) {
+            $persenTalangan = (float) $pengaturan->potongan_dana_talangan;
+            $persenPotongan = (float) $pengaturan->potongan_operasional + $persenTalangan;
+            $potongan = round((float) $data['jumlah_pinjaman'] * $persenPotongan / 100, 2);
             $pinjaman = Pinjaman::create([
                 ...$data,
                 'kode' => $this->kodeBerikutnya(),
@@ -153,7 +149,7 @@ class PinjamanController extends Controller
             (new SetoranPinjaman($pinjaman->kelompokTani))->hitungUlang($request->user());
 
             return $pinjaman;
-        });
+        }, 3);
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_INPUT,
@@ -164,7 +160,7 @@ class PinjamanController extends Controller
         return redirect()
             ->route('pinjaman.show', $pinjaman)
             ->with('sukses', 'Pinjaman berhasil dibuat. Kontribusi dana talangan '
-                .rupiah(round((float) $pinjaman->jumlah_pinjaman * (float) $pengaturan->potongan_dana_talangan / 100, 2))
+                .rupiah(round((float) $pinjaman->jumlah_pinjaman * (float) $pinjaman->potongan_talangan_persen / 100, 2))
                 .' ikut tercatat.');
     }
 
@@ -323,9 +319,17 @@ class PinjamanController extends Controller
 
     private function kodeBerikutnya(): string
     {
-        $tahun = now()->year;
-        $urutan = Pinjaman::whereYear('created_at', $tahun)->count() + 1;
+        $awalan = 'LP-'.now()->year.'-';
+        $terakhir = 0;
 
-        return sprintf('LP-%s-%03d', $tahun, $urutan);
+        foreach (Pinjaman::where('kode', 'like', $awalan.'%')->pluck('kode') as $kode) {
+            $urutan = substr($kode, strlen($awalan));
+
+            if (ctype_digit($urutan)) {
+                $terakhir = max($terakhir, (int) $urutan);
+            }
+        }
+
+        return $awalan.sprintf('%03d', $terakhir + 1);
     }
 }

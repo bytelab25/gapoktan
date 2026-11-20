@@ -28,7 +28,7 @@ biaya           = round(P × O / 100, 2)
 | Kas / Setoran Dana Talangan | Keluar | Kontribusi | Uang berpindah ke pos talangan |
 | Dana Talangan | Masuk | Kontribusi | Terkait pinjaman yang sama |
 
-Jika kontribusi nol, baris kas setoran talangan dan talangan turunan dihapus/tidak dibuat. Porsi operasional tidak dibuat menjadi kas masuk tambahan karena uangnya memang tetap berada di kas.
+Jika kontribusi nol, baris kas setoran talangan dan talangan turunan dihapus/tidak dibuat. Porsi operasional tetap berada di kas. Nominalnya ditampilkan di daftar Kas, detail, dan faktur transaksi pencairan.
 
 Contoh pokok Rp100.000.000 dengan pengaturan default:
 
@@ -103,7 +103,7 @@ Sejak revisi 16 Oktober 2026 kedua arti `menunggak` sama: sudah menyetor sebagia
 
 ## Kas manual dan talangan manual
 
-Kas masuk menambah saldo; kas keluar mengurangi saldo. Kolom `biaya` dihitung sebagai jumlah × persentase operasional saat pencatatan/penyuntingan, tetapi tidak ditambahkan atau dikurangi lagi dari saldo. Nilai biaya tidak ditampilkan pada daftar, form, detail, atau faktur Kas. Saldo berjalan dihitung dari seluruh transaksi sampai tanggal dan ID baris tersebut, termasuk transaksi di luar filter daftar.
+Kas masuk menambah saldo. Kas keluar mengurangi saldo. Untuk kas manual, kolom `biaya` menyimpan jumlah × persentase operasional saat pencatatan atau penyuntingan. Perhitungan saldo hanya memakai kolom `jumlah`. Saldo berjalan dihitung dari seluruh transaksi sampai tanggal dan ID baris tersebut, termasuk transaksi di luar filter daftar.
 
 Dana talangan mempunyai saldo tersendiri. Dana masuk manual boleh tanpa kelompok. Dana keluar wajib kelompok dan nama penerima; nama penerima adalah teks bebas karena tidak ada tabel anggota. Pencatatan talangan manual tidak otomatis membuat baris kas pasangan.
 

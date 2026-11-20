@@ -40,6 +40,12 @@
                     {{ rupiah_bertanda($transaksi->nilai) }}
                 </dd>
             </div>
+            @if ($transaksi->potongan_operasional > 0)
+                <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3">
+                    <dt class="text-sm text-slate-500">Potongan Operasional (Kas)</dt>
+                    <dd class="text-sm font-medium text-slate-900 sm:col-span-2">{{ rupiah($transaksi->potongan_operasional) }}</dd>
+                </div>
+            @endif
             <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3">
                 <dt class="text-sm text-slate-500">Deskripsi / Catatan</dt>
                 <dd class="text-sm text-slate-700 sm:col-span-2">{{ $transaksi->deskripsi ?: '-' }}</dd>

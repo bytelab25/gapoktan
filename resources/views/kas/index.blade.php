@@ -68,6 +68,13 @@
                                     {{ $transaksi->kelompokTani?->nama_kelompok ?? 'Umum' }}
                                 </p>
                                 <p class="text-xs text-slate-500">{{ Str::limit($transaksi->deskripsi, 60) ?: '-' }}</p>
+                                @if ($transaksi->potongan_operasional > 0)
+                                    <p class="mt-1 text-xs text-slate-600">
+                                        Potongan operasional (kas) {{ rupiah($transaksi->potongan_operasional) }}
+                                    </p>
+                                    <a href="{{ route('kas.faktur', $transaksi) }}" class="text-xs font-medium text-brand-700 underline"
+                                       onclick="event.stopPropagation()">Faktur Pencairan</a>
+                                @endif
                             </td>
                             <td class="px-6 py-4">
                                 <span class="badge {{ $transaksi->jenis === 'masuk' ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-600' }}">

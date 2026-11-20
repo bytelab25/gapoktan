@@ -71,6 +71,13 @@ class TransaksiKas extends Model
         return $this->pinjaman_id !== null || $this->kode_setoran !== null;
     }
 
+    public function getPotonganOperasionalAttribute(): float
+    {
+        return $this->pinjaman_id !== null && $this->kategori?->nama === KategoriKas::PENCAIRAN_PINJAMAN
+            ? (float) $this->biaya
+            : 0.0;
+    }
+
     /**
      * Nilai bertanda: masuk positif, keluar negatif.
      */

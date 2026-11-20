@@ -27,6 +27,15 @@
             <dt class="text-sm text-slate-500">Jumlah (IDR)</dt>
             <dd class="text-lg font-bold text-slate-900 sm:col-span-2">{{ rupiah($transaksi->jumlah) }}</dd>
         </div>
+        @if ($transaksi->potongan_operasional > 0)
+            <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3">
+                <dt class="text-sm text-slate-500">Potongan Operasional (Kas)</dt>
+                <dd class="text-sm text-slate-900 sm:col-span-2">
+                    <span class="font-medium">{{ rupiah($transaksi->potongan_operasional) }}</span>
+                    <span class="block text-slate-500">Dipotong saat pencairan dan tetap di kas.</span>
+                </dd>
+            </div>
+        @endif
         <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3">
             <dt class="text-sm text-slate-500">Deskripsi / Catatan</dt>
             <dd class="text-sm text-slate-700 sm:col-span-2">{{ $transaksi->deskripsi ?: '-' }}</dd>

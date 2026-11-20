@@ -84,8 +84,40 @@ class RevisiKeuanganTest extends TestCase
         $this->assertSame('1000000.00', $pinjaman->jumlah_pinjaman);
         $this->assertSame('15000.00', $pinjaman->potongan_nominal);
         $this->assertSame('985000.00', $pinjaman->jumlah_diterima);
-        $this->assertSame('985000.00', $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::PENCAIRAN_PINJAMAN)->firstOrFail()->jumlah);
+        $pencairan = $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::PENCAIRAN_PINJAMAN)->firstOrFail();
+        $this->assertSame('985000.00', $pencairan->jumlah);
+        $this->assertSame('5000.00', $pencairan->biaya);
         $this->assertSame('10000.00', $pinjaman->danaTalangan()->firstOrFail()->jumlah);
+        $this->assertSame(-995000.0, TransaksiKas::saldoTotal());
+
+        Pengaturan::ambil()->update(['potongan_operasional' => 2]);
+
+        $this->get(route('kas.index'))->assertOk()
+            ->assertSee('Potongan operasional (kas) Rp 5.000')
+            ->assertSee(route('kas.faktur', $pencairan));
+        $this->get(route('kas.show', $pencairan))->assertOk()
+            ->assertSee('Potongan Operasional (Kas)')->assertSee(rupiah(5000));
+        $this->get(route('kas.faktur', $pencairan))->assertOk()
+            ->assertSee('Potongan Operasional (Kas)')->assertSee(rupiah(5000));
+    }
+
+    public function test_kode_pinjaman_melanjutkan_urutan_setelah_pinjaman_lama_dihapus(): void
+    {
+        $lama = $this->pinjaman(['kode' => 'LP-2026-001']);
+        $this->pinjaman(['kode' => 'LP-2026-002']);
+        $lama->delete();
+
+        $kelompok = $this->kelompok();
+        $this->actingAs($this->pengguna())->post(route('pinjaman.store'), [
+            'kelompok_tani_id' => $kelompok->id,
+            'tanggal_transaksi' => '2026-09-04',
+            'tanggal_jatuh_tempo' => '2027-01-04',
+            'jumlah_pinjaman' => '8000000',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $pinjaman = $kelompok->pinjaman()->sole();
+        $this->assertSame('LP-2026-003', $pinjaman->kode);
+        $this->assertSame('2026-09-04', $pinjaman->tanggal_transaksi->toDateString());
     }
 
     public function test_nominal_pinjaman_desimal_ditolak(): void
