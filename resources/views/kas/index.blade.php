@@ -70,10 +70,15 @@
                                 <p class="text-xs text-slate-500">{{ Str::limit($transaksi->deskripsi, 60) ?: '-' }}</p>
                                 @if ($transaksi->potongan_operasional > 0)
                                     <p class="mt-1 text-xs text-slate-600">
-                                        Potongan operasional (kas) {{ rupiah($transaksi->potongan_operasional) }}
+                                        Potongan operasional {{ rupiah($transaksi->potongan_operasional) }}.
+                                        Diterima kelompok {{ rupiah((float) $transaksi->jumlah - $transaksi->potongan_operasional) }}.
                                     </p>
                                     <a href="{{ route('kas.faktur', $transaksi) }}" class="text-xs font-medium text-brand-700 underline"
                                        onclick="event.stopPropagation()">Faktur Pencairan</a>
+                                @endif
+                                @if ($transaksi->pinjaman_id && $transaksi->kategori->nama === \App\Models\KategoriKas::POTONGAN_OPERASIONAL_PINJAMAN)
+                                    <a href="{{ route('kas.faktur', $transaksi) }}" class="text-xs font-medium text-brand-700 underline"
+                                       onclick="event.stopPropagation()">Faktur Kas Masuk</a>
                                 @endif
                             </td>
                             <td class="px-6 py-4">

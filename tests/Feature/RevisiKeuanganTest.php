@@ -85,20 +85,98 @@ class RevisiKeuanganTest extends TestCase
         $this->assertSame('15000.00', $pinjaman->potongan_nominal);
         $this->assertSame('985000.00', $pinjaman->jumlah_diterima);
         $pencairan = $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::PENCAIRAN_PINJAMAN)->firstOrFail();
-        $this->assertSame('985000.00', $pencairan->jumlah);
+        $this->assertSame('990000.00', $pencairan->jumlah);
         $this->assertSame('5000.00', $pencairan->biaya);
+        $operasional = $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::POTONGAN_OPERASIONAL_PINJAMAN)->firstOrFail();
+        $this->assertSame(TransaksiKas::JENIS_MASUK, $operasional->jenis);
+        $this->assertSame('5000.00', $operasional->jumlah);
+        $this->assertTrue($operasional->otomatis);
         $this->assertSame('10000.00', $pinjaman->danaTalangan()->firstOrFail()->jumlah);
         $this->assertSame(-995000.0, TransaksiKas::saldoTotal());
 
         Pengaturan::ambil()->update(['potongan_operasional' => 2]);
 
         $this->get(route('kas.index'))->assertOk()
-            ->assertSee('Potongan operasional (kas) Rp 5.000')
-            ->assertSee(route('kas.faktur', $pencairan));
+            ->assertSee('Potongan operasional Rp 5.000')
+            ->assertSee('Potongan Operasional Pinjaman')
+            ->assertSee(route('kas.faktur', $operasional));
         $this->get(route('kas.show', $pencairan))->assertOk()
-            ->assertSee('Potongan Operasional (Kas)')->assertSee(rupiah(5000));
+            ->assertSee('Potongan Operasional (Kas)')->assertSee(rupiah(5000))
+            ->assertSee('Diterima Kelompok')->assertSee(rupiah(985000));
         $this->get(route('kas.faktur', $pencairan))->assertOk()
-            ->assertSee('Potongan Operasional (Kas)')->assertSee(rupiah(5000));
+            ->assertSee('Potongan Operasional (Kas)')->assertSee(rupiah(5000))
+            ->assertSee('Diterima Kelompok')->assertSee(rupiah(985000));
+        $this->get(route('kas.faktur', $operasional))->assertOk()
+            ->assertSee('Potongan Operasional Pinjaman')->assertSee(rupiah(5000));
+    }
+
+    public function test_potongan_operasional_pinjaman_delapan_juta_masuk_kas_dan_tetap_benar_saat_disunting(): void
+    {
+        $kelompok = $this->kelompok();
+        $pengguna = $this->pengguna();
+        $this->actingAs($pengguna)->post(route('pinjaman.store'), [
+            'kelompok_tani_id' => $kelompok->id,
+            'tanggal_transaksi' => '2026-10-08',
+            'tanggal_jatuh_tempo' => '2027-02-08',
+            'jumlah_pinjaman' => '8000000',
+        ])->assertSessionHasNoErrors();
+
+        $pinjaman = Pinjaman::firstOrFail();
+        $pencairan = $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::PENCAIRAN_PINJAMAN)->firstOrFail();
+        $operasional = $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::POTONGAN_OPERASIONAL_PINJAMAN)->firstOrFail();
+
+        $this->assertSame('7880000.00', $pinjaman->jumlah_diterima);
+        $this->assertSame('7920000.00', $pencairan->jumlah);
+        $this->assertSame('40000.00', $operasional->jumlah);
+        $this->assertSame('80000.00', $pinjaman->danaTalangan()->sole()->jumlah);
+        $this->assertSame(-7960000.0, TransaksiKas::saldoTotal());
+
+        $this->put(route('pinjaman.update', $pinjaman), [
+            'kelompok_tani_id' => $kelompok->id,
+            'tanggal_transaksi' => '2026-10-09',
+            'tanggal_jatuh_tempo' => '2027-02-09',
+            'jumlah_pinjaman' => '7000000',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame($pencairan->id, $pencairan->fresh()->id);
+        $this->assertSame('6930000.00', $pencairan->fresh()->jumlah);
+        $this->assertSame($operasional->id, $operasional->fresh()->id);
+        $this->assertSame('35000.00', $operasional->fresh()->jumlah);
+        $this->assertSame('70000.00', $pinjaman->danaTalangan()->sole()->jumlah);
+        $this->assertSame(-6965000.0, TransaksiKas::saldoTotal());
+    }
+
+    public function test_migrasi_membuat_faktur_kas_masuk_pinjaman_lama_tanpa_mengubah_saldo(): void
+    {
+        $kelompok = $this->kelompok();
+        $this->actingAs($this->pengguna())->post(route('pinjaman.store'), [
+            'kelompok_tani_id' => $kelompok->id,
+            'tanggal_transaksi' => '2026-10-08',
+            'tanggal_jatuh_tempo' => '2027-02-08',
+            'jumlah_pinjaman' => '8000000',
+        ])->assertSessionHasNoErrors();
+
+        $pinjaman = Pinjaman::firstOrFail();
+        $pencairan = $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::PENCAIRAN_PINJAMAN)->firstOrFail();
+        $operasional = $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::POTONGAN_OPERASIONAL_PINJAMAN)->firstOrFail();
+        $operasional->delete();
+        $pencairan->update(['jumlah' => 7880000]);
+        $saldoSebelum = TransaksiKas::saldoTotal();
+
+        $migrasi = require database_path('migrations/2026_11_20_000001_catat_potongan_operasional_pinjaman_di_kas.php');
+        $migrasi->up();
+        $migrasi->up();
+
+        $this->assertSame($saldoSebelum, TransaksiKas::saldoTotal());
+        $this->assertSame('7920000.00', $pencairan->fresh()->jumlah);
+        $this->assertSame(1, $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::POTONGAN_OPERASIONAL_PINJAMAN)->count());
+        $pemasukan = $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::POTONGAN_OPERASIONAL_PINJAMAN)->firstOrFail();
+        $this->get(route('kas.faktur', $pemasukan))->assertOk()->assertSee(rupiah(40000));
+
+        $migrasi->down();
+        $this->assertSame($saldoSebelum, TransaksiKas::saldoTotal());
+        $this->assertSame('7880000.00', $pencairan->fresh()->jumlah);
+        $this->assertSame(0, $pinjaman->transaksiKas()->whereRelation('kategori', 'nama', KategoriKas::POTONGAN_OPERASIONAL_PINJAMAN)->count());
     }
 
     public function test_kode_pinjaman_melanjutkan_urutan_setelah_pinjaman_lama_dihapus(): void

@@ -35,7 +35,7 @@
                 </dd>
             </div>
             <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3">
-                <dt class="text-sm text-slate-500">Jumlah (IDR)</dt>
+                <dt class="text-sm text-slate-500">{{ $transaksi->potongan_operasional > 0 ? 'Pencairan Sebelum Potongan Operasional' : 'Jumlah (IDR)' }}</dt>
                 <dd class="text-lg font-bold sm:col-span-2 {{ $transaksi->jenis === 'masuk' ? 'text-brand-600' : 'text-danger-600' }}">
                     {{ rupiah_bertanda($transaksi->nilai) }}
                 </dd>
@@ -44,6 +44,10 @@
                 <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3">
                     <dt class="text-sm text-slate-500">Potongan Operasional (Kas)</dt>
                     <dd class="text-sm font-medium text-slate-900 sm:col-span-2">{{ rupiah($transaksi->potongan_operasional) }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3">
+                    <dt class="text-sm text-slate-500">Diterima Kelompok</dt>
+                    <dd class="text-sm font-medium text-slate-900 sm:col-span-2">{{ rupiah((float) $transaksi->jumlah - $transaksi->potongan_operasional) }}</dd>
                 </div>
             @endif
             <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3">

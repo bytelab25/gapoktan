@@ -24,11 +24,12 @@ biaya           = round(P × O / 100, 2)
 
 | Pos | Jenis | Jumlah | Catatan |
 | --- | --- | --- | --- |
-| Kas / Pencairan Pinjaman | Keluar | `jumlah_diterima` | Menyimpan `biaya` operasional |
+| Kas / Pencairan Pinjaman | Keluar | `jumlah_diterima + biaya` | Pencairan sebelum potongan operasional; menyimpan `biaya` sebagai snapshot |
+| Kas / Potongan Operasional Pinjaman | Masuk | `biaya` | Bukti penerimaan dan faktur tersendiri |
 | Kas / Setoran Dana Talangan | Keluar | Kontribusi | Uang berpindah ke pos talangan |
 | Dana Talangan | Masuk | Kontribusi | Terkait pinjaman yang sama |
 
-Jika kontribusi nol, baris kas setoran talangan dan talangan turunan dihapus/tidak dibuat. Porsi operasional tetap berada di kas. Nominalnya ditampilkan di daftar Kas, detail, dan faktur transaksi pencairan.
+Jika kontribusi nol, baris kas setoran talangan dan talangan turunan dihapus/tidak dibuat. Jika potongan operasional nol, baris kas masuk operasional dihapus/tidak dibuat. Porsi operasional tetap berada di kas dan memiliki faktur sendiri. Baris pencairan juga menunjukkan nominal yang benar-benar diterima kelompok. Migrasi 20 November 2026 membuat bukti penerimaan untuk pinjaman lama tanpa mengubah saldo akhir kas.
 
 Contoh pokok Rp100.000.000 dengan pengaturan default:
 
@@ -38,6 +39,8 @@ Contoh pokok Rp100.000.000 dengan pengaturan default:
 | Operasional 0,5% | Rp500.000 |
 | Talangan 1% | Rp1.000.000 |
 | Diterima kelompok | Rp98.500.000 |
+| Kas keluar pada baris pencairan sebelum potongan operasional | Rp99.000.000 |
+| Kas masuk potongan operasional | Rp500.000 |
 | Total kas berkurang | Rp99.500.000 |
 | Saldo talangan bertambah | Rp1.000.000 |
 | Piutang pokok awal | Rp100.000.000 |

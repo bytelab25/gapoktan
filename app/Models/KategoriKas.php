@@ -17,11 +17,13 @@ class KategoriKas extends Model
     public const PENCAIRAN_PINJAMAN = 'Pencairan Pinjaman';
     public const PEMBAYARAN_PINJAMAN = 'Pembayaran Pinjaman';
     public const SETORAN_TALANGAN = 'Setoran Dana Talangan';
+    public const POTONGAN_OPERASIONAL_PINJAMAN = 'Potongan Operasional Pinjaman';
 
     public const SISTEM = [
         self::PENCAIRAN_PINJAMAN,
         self::PEMBAYARAN_PINJAMAN,
         self::SETORAN_TALANGAN,
+        self::POTONGAN_OPERASIONAL_PINJAMAN,
     ];
 
     protected $table = 'kategori_kas';

@@ -12,13 +12,14 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Transaksi yang otomatis lahir saat pinjaman dicairkan:
  *
- * - kas keluar sebesar dana yang benar-benar diterima kelompok,
+ * - kas keluar sebesar dana yang diterima kelompok ditambah potongan operasional,
+ * - kas masuk sebesar potongan operasional, sebagai bukti penerimaan tersendiri,
  * - kas keluar sebesar kontribusi dana talangan, karena uang itu pindah ke pos
  *   terpisah dan tidak lagi jadi saldo kas,
  * - dana talangan masuk dengan nominal yang sama.
  *
- * Potongan operasional tidak dibuat jadi baris kas: uangnya memang tidak pernah
- * keluar, jadi cukup disimpan sebagai kolom `biaya` di baris pencairan.
+ * Dua baris operasional saling mengimbangi: uangnya tetap di kas, tetapi
+ * penerimaannya memiliki nomor transaksi dan faktur sendiri.
  */
 class PencairanPinjaman
 {
@@ -27,16 +28,28 @@ class PencairanPinjaman
     public function sinkronkan(User $pencatat): void
     {
         $persenTalangan = (float) $this->pinjaman->potongan_talangan_persen;
-        $persenOperasional = (float) $this->pinjaman->potongan_persen - $persenTalangan;
         $pokok = (float) $this->pinjaman->jumlah_pinjaman;
         $nominalTalangan = round($pokok * $persenTalangan / 100, 2);
+        $nominalOperasional = round((float) $this->pinjaman->potongan_nominal - $nominalTalangan, 2);
 
         $this->simpanKas(KategoriKas::PENCAIRAN_PINJAMAN, [
-            'jumlah' => (float) $this->pinjaman->jumlah_diterima,
-            'biaya' => round($pokok * $persenOperasional / 100, 2),
+            'jumlah' => round((float) $this->pinjaman->jumlah_diterima + $nominalOperasional, 2),
+            'biaya' => $nominalOperasional,
             'deskripsi' => 'Pencairan pinjaman '.$this->pinjaman->kode
                 .' — '.$this->pinjaman->kelompokTani->nama_kelompok,
-        ], $pencatat);
+        ], $pencatat, TransaksiKas::JENIS_KELUAR);
+
+        if ($nominalOperasional > 0) {
+            $this->simpanKas(KategoriKas::POTONGAN_OPERASIONAL_PINJAMAN, [
+                'jumlah' => $nominalOperasional,
+                'biaya' => 0,
+                'deskripsi' => 'Potongan operasional dari pinjaman '.$this->pinjaman->kode,
+            ], $pencatat, TransaksiKas::JENIS_MASUK);
+        } else {
+            $this->pinjaman->transaksiKas()
+                ->whereRelation('kategori', 'nama', KategoriKas::POTONGAN_OPERASIONAL_PINJAMAN)
+                ->delete();
+        }
 
         if ($nominalTalangan <= 0) {
             $this->pinjaman->transaksiKas()
@@ -51,7 +64,7 @@ class PencairanPinjaman
             'jumlah' => $nominalTalangan,
             'biaya' => 0,
             'deskripsi' => 'Kontribusi dana talangan dari pinjaman '.$this->pinjaman->kode,
-        ], $pencatat);
+        ], $pencatat, TransaksiKas::JENIS_KELUAR);
 
         $talangan = $this->pinjaman->danaTalangan()->firstOrNew([]);
         $talangan->fill([
@@ -68,7 +81,7 @@ class PencairanPinjaman
     /**
      * @param  array<string, mixed>  $nilai
      */
-    private function simpanKas(string $namaKategori, array $nilai, User $pencatat): void
+    private function simpanKas(string $namaKategori, array $nilai, User $pencatat, string $jenis): void
     {
         $kategori = KategoriKas::sistem($namaKategori);
 
@@ -77,7 +90,7 @@ class PencairanPinjaman
             ...$nilai,
             'kode' => $kas->kode ?? $this->kodeKasBerikutnya(),
             'tanggal' => $this->pinjaman->tanggal_transaksi,
-            'jenis' => TransaksiKas::JENIS_KELUAR,
+            'jenis' => $jenis,
             'kategori_kas_id' => $kategori->id,
             'kelompok_tani_id' => $this->pinjaman->kelompok_tani_id,
             ...$this->jejakPengisi($kas, $pencatat),
