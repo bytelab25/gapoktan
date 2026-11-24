@@ -83,3 +83,89 @@
         @apply bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500;
     }
 }
+
+/*
+ * Warna data grafik. Seri 1–2 diambil dari palet kategori yang lolos uji
+ * buta warna (biru, oranye); warna status hanya untuk keadaan pinjaman dan
+ * selalu ditemani label, tidak pernah berdiri sendiri.
+ */
+:root {
+    --seri-1: #2a78d6;
+    --seri-2: #eb6834;
+    --status-baik: #0ca30c;
+    --status-kritis: #d03b3b;
+}
+
+.grafik-tooltip {
+    position: fixed;
+    z-index: 60;
+    min-width: 11rem;
+    pointer-events: none;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(15 23 42 / 0.08);
+    background: #fff;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #0f172a;
+    box-shadow: 0 10px 30px -12px rgb(15 23 42 / 0.25);
+}
+
+.grafik-tooltip__judul {
+    margin-bottom: 0.375rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.grafik-tooltip__baris {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.125rem 0;
+}
+
+/* Kunci berupa garis pendek, bukan kotak penuh. */
+.grafik-tooltip__kunci {
+    width: 0.75rem;
+    height: 2px;
+    flex-shrink: 0;
+    border-radius: 1px;
+}
+
+.grafik-tooltip__baris strong {
+    font-variant-numeric: tabular-nums;
+}
+
+.grafik-tooltip__nama {
+    color: #64748b;
+}
+
+.grafik-tooltip__total {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.375rem;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.375rem;
+    color: #64748b;
+}
+
+.grafik-tooltip__total strong {
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbar tipis yang tetap terlihat, supaya pengguna tahu daftar bisa digulir. */
+.daftar-gulir {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.daftar-gulir::-webkit-scrollbar {
+    width: 6px;
+}
+
+.daftar-gulir::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: #cbd5e1;
+}

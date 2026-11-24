@@ -2,6 +2,7 @@ import Alpine from 'alpinejs';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { formatNominal, inputNominal, tambahBulan } from './nominal';
+import { pasangTooltipGrafik } from './grafik';
 
 window.Alpine = Alpine;
 window.Swal = Swal;
@@ -9,7 +10,35 @@ window.formatNominal = formatNominal;
 window.tambahBulan = tambahBulan;
 Alpine.data('inputNominal', inputNominal);
 
+/**
+ * Penanda daftar yang bisa digulir (komponen x-daftar-gulir). "sisa" adalah
+ * jumlah baris yang belum terlihat di bawah area tampil.
+ */
+Alpine.data('daftarGulir', () => ({
+    diAtas: true,
+    diBawah: true,
+    sisa: 0,
+    init() {
+        this.perbarui();
+        new ResizeObserver(() => this.perbarui()).observe(this.$refs.isi);
+    },
+    perbarui() {
+        const el = this.$refs.isi;
+        const batasBawah = el.scrollTop + el.clientHeight;
+        this.diAtas = el.scrollTop <= 2;
+        this.diBawah = batasBawah >= el.scrollHeight - 2;
+
+        const baris = el.querySelectorAll(':scope > ul > li, :scope > li');
+        const atasKotak = el.getBoundingClientRect().top;
+        this.sisa = [...baris].filter((li) => li.getBoundingClientRect().top - atasKotak >= el.clientHeight - 4).length;
+    },
+    gulirKeBawah() {
+        this.$refs.isi.scrollBy({ top: this.$refs.isi.clientHeight * 0.8, behavior: 'smooth' });
+    },
+}));
+
 Alpine.start();
+pasangTooltipGrafik();
 
 const WARNA = {
     hijau: '#006C49',

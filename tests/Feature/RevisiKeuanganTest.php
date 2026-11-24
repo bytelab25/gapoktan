@@ -773,6 +773,25 @@ class RevisiKeuanganTest extends TestCase
         $this->get(route('laporan.unduh', $filter))->assertOk();
     }
 
+    public function test_beranda_menampilkan_grafik_dan_ringkasan(): void
+    {
+        $this->modalKas(5000000);
+        $berjalan = $this->pinjaman(['tanggal_transaksi' => '2026-09-08', 'tanggal_jatuh_tempo' => '2026-10-20']);
+        $this->pinjaman(['status' => Pinjaman::STATUS_LUNAS]);
+        $this->actingAs($this->pengguna())->post(route('pembayaran.store', $berjalan->kelompok_tani_id), [
+            'tanggal' => '2026-10-08', 'jumlah' => '60000',
+        ])->assertSessionHasNoErrors();
+
+        $this->get(route('beranda'))->assertOk()
+            ->assertSeeInOrder(['Arus Kas 12 Bulan Terakhir', 'Status Pinjaman', 'Setoran Pinjaman 12 Bulan Terakhir',
+                'Sisa Pinjaman Terbesar', 'Jatuh Tempo 30 Hari ke Depan', 'Transaksi Kas Terbaru'])
+            ->assertSee('Okt 26')
+            ->assertSee($berjalan->kelompokTani->nama_kelompok)
+            ->assertSee('Setoran Oktober 2026')
+            ->assertSee(rupiah(60000))
+            ->assertSee('Lunas');
+    }
+
     private function pengguna(string $role = User::ROLE_SEKRETARIS): User
     {
         return User::factory()->create(['username' => Str::uuid()->toString(), 'role' => $role]);
