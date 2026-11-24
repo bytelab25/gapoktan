@@ -15,8 +15,11 @@ class KategoriKas extends Model
 
     /** Kategori milik sistem, dipakai transaksi otomatis. */
     public const PENCAIRAN_PINJAMAN = 'Pencairan Pinjaman';
+
     public const PEMBAYARAN_PINJAMAN = 'Pembayaran Pinjaman';
+
     public const SETORAN_TALANGAN = 'Setoran Dana Talangan';
+
     public const POTONGAN_OPERASIONAL_PINJAMAN = 'Potongan Operasional Pinjaman';
 
     public const SISTEM = [

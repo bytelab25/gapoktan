@@ -6,9 +6,11 @@ use App\Models\DanaTalangan;
 use App\Models\KelompokTani;
 use App\Models\LogAktivitas;
 use App\Models\Pengaturan;
+use App\Support\PenjagaSaldo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class DanaTalanganController extends Controller
@@ -45,7 +47,8 @@ class DanaTalanganController extends Controller
         $data['kode'] = $this->kodeBerikutnya();
         $data['user_id'] = $request->user()->id;
 
-        $transaksi = DanaTalangan::create($data);
+        // Klaim (dana keluar) ditolak bila saldo dana talangan tidak cukup.
+        $transaksi = PenjagaSaldo::jalankan(fn () => DanaTalangan::create($data));
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_INPUT,
@@ -87,7 +90,9 @@ class DanaTalanganController extends Controller
             return back()->with('gagal', $this->pesanOtomatis());
         }
 
-        $talangan->update([...$this->validasi($request), 'diubah_oleh_id' => $request->user()->id]);
+        $data = [...$this->validasi($request), 'diubah_oleh_id' => $request->user()->id];
+
+        PenjagaSaldo::jalankan(fn () => $talangan->update($data));
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_SUNTING,
@@ -108,7 +113,11 @@ class DanaTalanganController extends Controller
 
         $kode = $talangan->kode;
         $jumlah = rupiah($talangan->jumlah);
-        $talangan->delete();
+        try {
+            PenjagaSaldo::jalankan(fn () => $talangan->delete());
+        } catch (ValidationException $galat) {
+            return back()->with('gagal', PenjagaSaldo::pesan($galat));
+        }
 
         LogAktivitas::catat(LogAktivitas::TINDAKAN_HAPUS, "Menghapus transaksi dana talangan {$jumlah}", $kode);
 

@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Auth;
 class LogAktivitas extends Model
 {
     public const TINDAKAN_INPUT = 'input';
+
     public const TINDAKAN_SUNTING = 'sunting';
+
     public const TINDAKAN_HAPUS = 'hapus';
 
     protected $table = 'log_aktivitas';

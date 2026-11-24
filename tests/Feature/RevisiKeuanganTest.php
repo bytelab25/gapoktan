@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\DanaTalangan;
 use App\Models\KategoriKas;
 use App\Models\KelompokTani;
 use App\Models\PembayaranPinjaman;
@@ -71,6 +72,7 @@ class RevisiKeuanganTest extends TestCase
 
     public function test_tanggal_pilihan_dan_nominal_bulat_pinjaman_tersimpan(): void
     {
+        $this->modalKas();
         $kelompok = $this->kelompok();
         $this->actingAs($this->pengguna())->post(route('pinjaman.store'), [
             'kelompok_tani_id' => $kelompok->id,
@@ -92,7 +94,7 @@ class RevisiKeuanganTest extends TestCase
         $this->assertSame('5000.00', $operasional->jumlah);
         $this->assertTrue($operasional->otomatis);
         $this->assertSame('10000.00', $pinjaman->danaTalangan()->firstOrFail()->jumlah);
-        $this->assertSame(-995000.0, TransaksiKas::saldoTotal());
+        $this->assertSame(10000000.0 - 995000.0, TransaksiKas::saldoTotal());
 
         Pengaturan::ambil()->update(['potongan_operasional' => 2]);
 
@@ -112,6 +114,7 @@ class RevisiKeuanganTest extends TestCase
 
     public function test_potongan_operasional_pinjaman_delapan_juta_masuk_kas_dan_tetap_benar_saat_disunting(): void
     {
+        $this->modalKas();
         $kelompok = $this->kelompok();
         $pengguna = $this->pengguna();
         $this->actingAs($pengguna)->post(route('pinjaman.store'), [
@@ -129,7 +132,7 @@ class RevisiKeuanganTest extends TestCase
         $this->assertSame('7920000.00', $pencairan->jumlah);
         $this->assertSame('40000.00', $operasional->jumlah);
         $this->assertSame('80000.00', $pinjaman->danaTalangan()->sole()->jumlah);
-        $this->assertSame(-7960000.0, TransaksiKas::saldoTotal());
+        $this->assertSame(10000000.0 - 7960000.0, TransaksiKas::saldoTotal());
 
         $this->put(route('pinjaman.update', $pinjaman), [
             'kelompok_tani_id' => $kelompok->id,
@@ -143,11 +146,12 @@ class RevisiKeuanganTest extends TestCase
         $this->assertSame($operasional->id, $operasional->fresh()->id);
         $this->assertSame('35000.00', $operasional->fresh()->jumlah);
         $this->assertSame('70000.00', $pinjaman->danaTalangan()->sole()->jumlah);
-        $this->assertSame(-6965000.0, TransaksiKas::saldoTotal());
+        $this->assertSame(10000000.0 - 6965000.0, TransaksiKas::saldoTotal());
     }
 
     public function test_migrasi_membuat_faktur_kas_masuk_pinjaman_lama_tanpa_mengubah_saldo(): void
     {
+        $this->modalKas();
         $kelompok = $this->kelompok();
         $this->actingAs($this->pengguna())->post(route('pinjaman.store'), [
             'kelompok_tani_id' => $kelompok->id,
@@ -184,6 +188,7 @@ class RevisiKeuanganTest extends TestCase
         $lama = $this->pinjaman(['kode' => 'LP-2026-001']);
         $this->pinjaman(['kode' => 'LP-2026-002']);
         $lama->delete();
+        $this->modalKas();
 
         $kelompok = $this->kelompok();
         $this->actingAs($this->pengguna())->post(route('pinjaman.store'), [
@@ -213,6 +218,7 @@ class RevisiKeuanganTest extends TestCase
 
     public function test_tanggal_jatuh_tempo_dapat_disunting_tanpa_dihitung_ulang(): void
     {
+        $this->modalKas();
         $pinjaman = $this->pinjaman();
         $this->actingAs($this->pengguna())->put(route('pinjaman.update', $pinjaman), [
             'kelompok_tani_id' => $pinjaman->kelompok_tani_id,
@@ -462,6 +468,7 @@ class RevisiKeuanganTest extends TestCase
         $this->get(route('pembayaran.faktur', $baru))->assertSee('Penyunting Akhir')->assertDontSee('Pencatat Awal');
         $this->assertSame($penyunting->id, TransaksiKas::firstOrFail()->diubah_oleh_id);
 
+        $this->modalKas();
         $belumBayar = $this->pinjaman(['user_id' => $pencatat->id]);
         $this->put(route('pinjaman.update', $belumBayar), [
             'kelompok_tani_id' => $belumBayar->kelompok_tani_id, 'tanggal_transaksi' => '2026-08-08',
@@ -678,6 +685,7 @@ class RevisiKeuanganTest extends TestCase
             'tanggal' => '2026-10-08', 'jumlah' => '20000',
         ]);
         $this->assertSame(1, $baru->pembayaran()->count());
+        $this->modalKas();
 
         $this->post(route('pinjaman.store'), [
             'kelompok_tani_id' => $baru->kelompok_tani_id,
@@ -753,6 +761,18 @@ class RevisiKeuanganTest extends TestCase
         $this->post(route('pinjaman.store'), $formulir)->assertSessionHasNoErrors();
     }
 
+    public function test_laporan_akhir_tahun_menampilkan_saldo_talangan_di_bawah_hasil_usaha(): void
+    {
+        DanaTalangan::create(['kode' => 'DT-0001', 'tanggal' => '2026-03-01', 'jenis' => DanaTalangan::JENIS_MASUK, 'jumlah' => 75000]);
+        DanaTalangan::create(['kode' => 'DT-0002', 'tanggal' => '2026-04-01', 'jenis' => DanaTalangan::JENIS_KELUAR, 'jumlah' => 25000]);
+        $filter = ['jenis' => 'akhir_tahun', 'tahun' => 2026];
+
+        $this->actingAs($this->pengguna())->get(route('laporan.index', $filter))->assertOk()
+            ->assertSeeInOrder(['Sisa Hasil Usaha', 'Dana Talangan', rupiah(75000), rupiah(25000), 'Saldo Dana Talangan', rupiah(50000), 'Catatan'])
+            ->assertDontSee('sehingga saldonya kini');
+        $this->get(route('laporan.unduh', $filter))->assertOk();
+    }
+
     private function pengguna(string $role = User::ROLE_SEKRETARIS): User
     {
         return User::factory()->create(['username' => Str::uuid()->toString(), 'role' => $role]);
@@ -787,6 +807,20 @@ class RevisiKeuanganTest extends TestCase
             'tunggakan_bunga' => 0,
             'status' => Pinjaman::STATUS_BELUM_BAYAR,
             ...$atribut,
+        ]);
+    }
+
+    /**
+     * Pemasukan kas awal supaya pencairan pinjaman tidak ditolak karena saldo kurang.
+     */
+    private function modalKas(int $jumlah = 10000000): TransaksiKas
+    {
+        return TransaksiKas::create([
+            'kode' => 'MODAL-'.Str::uuid(),
+            'tanggal' => '2026-01-01',
+            'jenis' => TransaksiKas::JENIS_MASUK,
+            'kategori_kas_id' => KategoriKas::firstOrCreate(['nama' => 'Modal Awal'])->id,
+            'jumlah' => $jumlah,
         ]);
     }
 

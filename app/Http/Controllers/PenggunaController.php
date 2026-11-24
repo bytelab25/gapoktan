@@ -6,6 +6,7 @@ use App\Models\LogAktivitas;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
@@ -102,6 +103,11 @@ class PenggunaController extends Controller
             return back()->with('gagal', 'Anda tidak bisa menghapus akun yang sedang dipakai.');
         }
 
+        if ($this->sedangLogin($pengguna)) {
+            return back()->with('gagal', "{$pengguna->name} sedang login. Minta yang bersangkutan keluar dulu, "
+                .'atau tunggu sampai sesinya berakhir.');
+        }
+
         if (User::count() <= 1) {
             return back()->with('gagal', 'Pengguna terakhir tidak bisa dihapus.');
         }
@@ -118,6 +124,26 @@ class PenggunaController extends Controller
         return redirect()
             ->route('pengguna.index')
             ->with('sukses', 'Pengguna berhasil dihapus.');
+    }
+
+    /**
+     * Pengguna dianggap sedang login bila punya sesi yang masih aktif di tabel
+     * sessions. Sesi yang ditutup lewat tombol keluar langsung terhapus; sesi
+     * yang ditinggal begitu saja kedaluwarsa setelah SESSION_LIFETIME menit.
+     */
+    private function sedangLogin(User $pengguna): bool
+    {
+        if (config('session.driver') !== 'database') {
+            return false;
+        }
+
+        $batas = now()->subMinutes((int) config('session.lifetime'))->getTimestamp();
+
+        return DB::connection(config('session.connection'))
+            ->table(config('session.table', 'sessions'))
+            ->where('user_id', $pengguna->id)
+            ->where('last_activity', '>=', $batas)
+            ->exists();
     }
 
     /**

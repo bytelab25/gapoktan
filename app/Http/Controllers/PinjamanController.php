@@ -8,6 +8,7 @@ use App\Models\Pengaturan;
 use App\Models\Pinjaman;
 use App\Services\PencairanPinjaman;
 use App\Services\SetoranPinjaman;
+use App\Support\PenjagaSaldo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -114,7 +115,8 @@ class PinjamanController extends Controller
     {
         $data = $this->validasi($request);
 
-        $pinjaman = DB::transaction(function () use ($data, $request) {
+        // Pencairan ditolak bila saldo kas tidak cukup menutup dana yang keluar.
+        $pinjaman = PenjagaSaldo::jalankan(fn () => DB::transaction(function () use ($data, $request) {
             // Kunci baris tunggal pengaturan sebelum membaca urutan pinjaman.
             $pengaturan = Pengaturan::lockForUpdate()->orderBy('id')->first() ?? Pengaturan::ambil();
             $kelompok = KelompokTani::with('pinjaman.pembayaran')->findOrFail($data['kelompok_tani_id']);
@@ -149,7 +151,7 @@ class PinjamanController extends Controller
             (new SetoranPinjaman($pinjaman->kelompokTani))->hitungUlang($request->user());
 
             return $pinjaman;
-        }, 3);
+        }), 'jumlah_pinjaman', 3);
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_INPUT,
@@ -222,7 +224,8 @@ class PinjamanController extends Controller
         $potongan = round((float) $data['jumlah_pinjaman'] * (float) $pinjaman->potongan_persen / 100, 2);
         $kelompokLama = $pinjaman->kelompokTani;
 
-        DB::transaction(function () use ($pinjaman, $data, $potongan, $request, $kelompokLama) {
+        // Menaikkan nominal tidak boleh membuat saldo kas minus.
+        PenjagaSaldo::jalankan(fn () => DB::transaction(function () use ($pinjaman, $data, $potongan, $request, $kelompokLama) {
             // Belum ada setoran, jadi termin kembali ke awal dari jatuh tempo baru.
             $pinjaman->update([
                 ...$data,
@@ -241,7 +244,7 @@ class PinjamanController extends Controller
             if ($kelompokLama->isNot($pinjaman->kelompokTani)) {
                 (new SetoranPinjaman($kelompokLama))->hitungUlang($request->user());
             }
-        });
+        }), 'jumlah_pinjaman');
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_SUNTING,
@@ -264,12 +267,18 @@ class PinjamanController extends Controller
         $kelompok = $pinjaman->kelompokTani;
         $nama = $kelompok->nama_kelompok;
 
-        DB::transaction(function () use ($pinjaman) {
-            // Baris kas dan talangan turunan ikut dibersihkan.
-            $pinjaman->transaksiKas()->delete();
-            $pinjaman->danaTalangan()->delete();
-            $pinjaman->delete();
-        });
+        // Kontribusi talangan yang terhapus bisa membuat saldo dana talangan
+        // minus bila dananya sudah terpakai untuk klaim.
+        try {
+            PenjagaSaldo::jalankan(function () use ($pinjaman) {
+                // Baris kas dan talangan turunan ikut dibersihkan.
+                $pinjaman->transaksiKas()->delete();
+                $pinjaman->danaTalangan()->delete();
+                $pinjaman->delete();
+            });
+        } catch (ValidationException $galat) {
+            return back()->with('gagal', PenjagaSaldo::pesan($galat));
+        }
 
         LogAktivitas::catat(LogAktivitas::TINDAKAN_HAPUS, "Menghapus pinjaman {$nama}", $kode);
 

@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Carbon;
+
 if (! function_exists('rupiah')) {
     /**
      * Format angka jadi rupiah gaya Indonesia: Rp 1.250.000
@@ -34,6 +36,6 @@ if (! function_exists('tanggal_id')) {
             return '-';
         }
 
-        return \Illuminate\Support\Carbon::parse($tanggal)->translatedFormat($format);
+        return Carbon::parse($tanggal)->translatedFormat($format);
     }
 }

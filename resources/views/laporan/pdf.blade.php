@@ -360,14 +360,31 @@
         </div>
 
         <div class="bagian">
+            <h2>Dana Talangan <span class="redup" style="text-transform: none; letter-spacing: 0;">— dana amanah anggota, tidak masuk perhitungan hasil usaha</span></h2>
+
+            <table class="rincian">
+                <tr>
+                    <td class="indent tebal">Kontribusi Diterima {{ $hasil['tahun'] }}</td>
+                    <td class="kanan tebal">{{ rupiah($hasil['kontribusiTalangan']) }}</td>
+                </tr>
+                <tr>
+                    <td class="indent tebal">Klaim Dibayar {{ $hasil['tahun'] }}</td>
+                    <td class="kanan tebal merah">({{ rupiah($hasil['klaimTalangan']) }})</td>
+                </tr>
+            </table>
+
+            <table class="sisa">
+                <tr>
+                    <td class="teks">Saldo Dana Talangan</td>
+                    <td class="angka {{ $hasil['saldoTalangan'] < 0 ? 'merah' : 'hijau' }}">
+                        {{ rupiah_bertanda($hasil['saldoTalangan']) }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="bagian">
             <h2>Catatan</h2>
-            <p class="catatan">
-                Dana talangan dikelola sebagai dana amanah anggota, terpisah dari hasil usaha koperasi.
-                Sepanjang {{ $hasil['tahun'] }} pos ini menerima kontribusi
-                {{ rupiah($hasil['kontribusiTalangan']) }} dan membayar klaim
-                {{ rupiah($hasil['klaimTalangan']) }}, sehingga saldonya kini
-                {{ rupiah($hasil['saldoTalangan']) }}. Keduanya tidak masuk perhitungan di atas.
-            </p>
             <p class="catatan">
                 Yang diakui sebagai pendapatan hanyalah bunga pinjaman yang sudah benar-benar diterima
                 dan porsi potongan operasional. Pencairan pinjaman tidak dicatat sebagai beban karena

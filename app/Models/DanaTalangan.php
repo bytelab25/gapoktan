@@ -12,6 +12,7 @@ class DanaTalangan extends Model
     use HasFactory, PunyaPenyunting;
 
     public const JENIS_MASUK = 'masuk';
+
     public const JENIS_KELUAR = 'keluar';
 
     protected $table = 'dana_talangan';

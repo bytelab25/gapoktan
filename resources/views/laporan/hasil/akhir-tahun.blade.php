@@ -66,17 +66,35 @@
 
     <section>
         <h3 class="border-b border-slate-200 pb-2 text-base font-bold uppercase tracking-wide text-slate-900">
+            Dana Talangan
+        </h3>
+        <p class="mt-3 text-sm font-semibold text-slate-700">
+            Dana amanah anggota, terpisah dari hasil usaha dan tidak masuk perhitungan di atas.
+        </p>
+
+        <dl class="mt-2 divide-y divide-slate-100">
+            <div class="flex items-center justify-between gap-4 py-3 pl-4">
+                <dt class="text-sm font-semibold text-slate-700">Kontribusi Diterima {{ $hasil['tahun'] }}</dt>
+                <dd class="text-sm font-bold text-slate-900">{{ rupiah($hasil['kontribusiTalangan']) }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 py-3 pl-4">
+                <dt class="text-sm font-semibold text-slate-700">Klaim Dibayar {{ $hasil['tahun'] }}</dt>
+                <dd class="text-sm font-bold text-danger-600">({{ rupiah($hasil['klaimTalangan']) }})</dd>
+            </div>
+        </dl>
+
+        <div class="mt-4 flex items-center justify-between gap-4 rounded-lg bg-brand-50 px-5 py-4">
+            <span class="text-sm font-bold uppercase tracking-wide text-brand-800">Saldo Dana Talangan</span>
+            <span class="text-2xl font-bold {{ $hasil['saldoTalangan'] < 0 ? 'text-danger-600' : 'text-brand-700' }}">
+                {{ rupiah_bertanda($hasil['saldoTalangan']) }}
+            </span>
+        </div>
+    </section>
+
+    <section>
+        <h3 class="border-b border-slate-200 pb-2 text-base font-bold uppercase tracking-wide text-slate-900">
             Catatan
         </h3>
-        <p class="mt-3 text-sm leading-relaxed text-slate-600">
-            Dana talangan dikelola sebagai dana amanah anggota, terpisah dari hasil usaha koperasi.
-            Sepanjang {{ $hasil['tahun'] }} pos ini menerima kontribusi
-            <span class="font-semibold text-slate-900">{{ rupiah($hasil['kontribusiTalangan']) }}</span>
-            dan membayar klaim
-            <span class="font-semibold text-slate-900">{{ rupiah($hasil['klaimTalangan']) }}</span>,
-            sehingga saldonya kini <span class="font-semibold text-slate-900">{{ rupiah($hasil['saldoTalangan']) }}</span>.
-            Keduanya tidak masuk perhitungan di atas.
-        </p>
         <p class="mt-3 text-sm leading-relaxed text-slate-600">
             Yang diakui sebagai pendapatan hanyalah bunga pinjaman yang sudah benar-benar diterima
             dan porsi potongan operasional. Pencairan pinjaman tidak dicatat sebagai beban karena

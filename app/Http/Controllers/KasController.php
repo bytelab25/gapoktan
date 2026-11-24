@@ -7,9 +7,11 @@ use App\Models\KelompokTani;
 use App\Models\LogAktivitas;
 use App\Models\Pengaturan;
 use App\Models\TransaksiKas;
+use App\Support\PenjagaSaldo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class KasController extends Controller
@@ -48,7 +50,8 @@ class KasController extends Controller
         $data['user_id'] = $request->user()->id;
         $data['biaya'] = $this->hitungBiaya($data['jumlah']);
 
-        $transaksi = TransaksiKas::create($data);
+        // Pengeluaran ditolak bila saldo kas tidak cukup.
+        $transaksi = PenjagaSaldo::jalankan(fn () => TransaksiKas::create($data));
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_INPUT,
@@ -96,7 +99,8 @@ class KasController extends Controller
         $data['biaya'] = $this->hitungBiaya($data['jumlah']);
         $data['diubah_oleh_id'] = $request->user()->id;
 
-        $kas->update($data);
+        // Mengubah nominal atau jenis tidak boleh membuat saldo kas minus.
+        PenjagaSaldo::jalankan(fn () => $kas->update($data));
 
         LogAktivitas::catat(
             LogAktivitas::TINDAKAN_SUNTING,
@@ -117,7 +121,12 @@ class KasController extends Controller
 
         $kode = $kas->kode;
         $jumlah = rupiah($kas->jumlah);
-        $kas->delete();
+        // Menghapus pemasukan yang sudah terpakai akan membuat saldo kas minus.
+        try {
+            PenjagaSaldo::jalankan(fn () => $kas->delete());
+        } catch (ValidationException $galat) {
+            return back()->with('gagal', PenjagaSaldo::pesan($galat));
+        }
 
         LogAktivitas::catat(LogAktivitas::TINDAKAN_HAPUS, "Menghapus transaksi kas {$jumlah}", $kode);
 
